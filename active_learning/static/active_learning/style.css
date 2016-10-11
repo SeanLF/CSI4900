@@ -60,6 +60,10 @@ label:after {
   padding: 2rem;
 }
 
+.detail_page .text {
+  white-space: pre-line;
+}
+
 .index_page .text ul {
   padding: 0;
   margin: 0;

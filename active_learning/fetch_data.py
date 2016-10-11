@@ -38,10 +38,11 @@ class FetchData:
                 try:
                     a.parse()
                     a.nlp()
+
+                    # Save data in database
+                    article = Article(query=query, url=url, title=a.title, text=a.text, keywords=a.keywords)
+                    article.save()
+
                 except newspaper.article.ArticleException:
                     print('Failed for', url)
                     pass
-
-                # Save data in database
-                article = Article(query=query, url=url, title=a.title, text=a.text, keywords=a.keywords)
-                article.save()
