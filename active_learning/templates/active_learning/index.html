@@ -1,0 +1,23 @@
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'active_learning/style.css' %}" />
+
+<div class="index_page">
+  <div class="header">
+    <div class="title">
+      Articles
+    </div>
+  </div>
+  <div class="text">
+    {% if articles %}
+        <ul>
+        {% for article in articles %}
+          <li><a href="{% url 'active_learning:detail' article.id %}">{{ article.title }}</a></li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No articles found.</p>
+    {% endif %}
+  </div>
+
+</div>

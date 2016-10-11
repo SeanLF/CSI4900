@@ -1,0 +1,26 @@
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'active_learning/style.css' %}" />
+
+<div class="detail_page">
+
+  <div class="header">
+    <div class="title">
+      <a href="{{article.url}}">{{ article.title }}</a>
+    </div>
+
+    <div class="keywords">
+        <label for="keywords">Keywords</label>
+        <span id="url">{{ article.keywords }}</span>
+    </div>
+
+    <div class="query">
+        <label for="query">Google News query</label>
+        <span id="query">{{ article.query }}</span>
+    </div>
+  </div>
+
+  <div class="text">
+      <p id="text">{{ article.text }}</p>
+  </div>
+</div>
