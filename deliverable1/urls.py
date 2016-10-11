@@ -18,6 +18,6 @@ from django.contrib import admin
 
 urlpatterns = [
     url(r'^active_learning/', include('active_learning.urls')),
-    url(r'^$', include('active_learning.urls')),
+    url(r'^', include('active_learning.urls')),
     url(r'^admin/', admin.site.urls),
 ]
