@@ -9,10 +9,21 @@
     </div>
   </div>
   <div class="text">
+    <label for="link_colors">Legend</label>
+    <span id="link_colors">
+      <span class="cyber security">cyber security</span>,
+      <span class="cyber">cyber</span>,
+      <span class="security">security</span>,
+      <span class="privacy">privacy</span>,
+      <span class="trump">trump</span>,
+      <span class="sport">sport</span>,
+      <span class="health">health</span>
+    </span>
+    <hr>
     {% if articles %}
         <ul>
         {% for article in articles %}
-          <li><a href="{% url 'active_learning:detail' article.id %}">{{ article.title }}</a></li>
+          <li><a class="{{article.query}}" href="{% url 'active_learning:detail' article.id %}">{{ article.title }}</a></li>
         {% endfor %}
         </ul>
     {% else %}

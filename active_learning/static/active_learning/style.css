@@ -47,11 +47,11 @@ a, a:visited {
   margin-bottom: 1rem;
 }
 
-.detail_page label {
+label {
   font-weight: bold;
 }
 
-.detail_page label:after {
+label:after {
   content: ':'
 }
 
@@ -68,3 +68,12 @@ a, a:visited {
 .index_page .text li {
   list-style: none;
 }
+
+/* Article class */
+.cyber.security, .cyber.security:visited {color: #E91E63;}
+.trump, .trump:visited {color:#009688;}
+.security, .security:visited {color:#3F51B5;}
+.privacy, .privacy:visited {color:#9C27B0;}
+.cyber, .cyber:visited {color:#795548;}
+.health, .health:visited {color:#4CAF50;}
+.sport, .sport:visited {color:#FF9800;}

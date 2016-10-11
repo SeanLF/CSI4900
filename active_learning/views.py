@@ -1,9 +1,16 @@
 from django.shortcuts import render, get_object_or_404
 from .models import Article
+from .fetch_data import FetchData
 
 
 def index(request):
-    articles = Article.objects.all()
+    if Article.objects.count() == 0:
+        fd = FetchData()
+        links_per_query = fd.getGoogleNewsURLs()
+        fd.processAndSaveDataFromLinks(links_per_query)
+
+    articles = Article.objects.all().order_by("query")
+
     context = {'articles': articles}
     return render(request, 'active_learning/index.html', context)
 
