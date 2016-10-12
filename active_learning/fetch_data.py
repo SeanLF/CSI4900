@@ -40,7 +40,7 @@ class FetchData:
                     a.nlp()
 
                     # Save data in database
-                    article = Article(query=query, url=url, title=a.title, text=a.text, keywords=a.keywords)
+                    article = Article(query=query, url=url, title=a.title, text=a.text, nlp_keywords=a.keywords)
                     article.save()
 
                 except newspaper.article.ArticleException:

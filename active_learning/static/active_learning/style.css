@@ -43,8 +43,12 @@ a, a:visited {
   font-size: 2rem;
 }
 
-.keywords, .query {
+.keywords, .query, .date_accessed {
   margin-bottom: 1rem;
+}
+
+.term_frequencies ul {
+  margin: 0.5rem 0 0 0;
 }
 
 label {

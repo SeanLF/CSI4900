@@ -10,13 +10,40 @@
     </div>
 
     <div class="keywords">
-        <label for="keywords">Keywords</label>
-        <span id="url">{{ article.keywords }}</span>
+      <label for="keywords">Keywords</label>
+      <span id="url">{{ article.keywords }}</span>
     </div>
 
     <div class="query">
-        <label for="query">Google News query</label>
-        <span id="query">{{ article.query }}</span>
+      <label for="query">Google News query</label>
+      <span id="query">{{ article.query }}</span>
+    </div>
+
+    <div class="date_accessed">
+      <label for="date_accessed">Date Accessed</label>
+      <span id="date_accessed">{{ article.date_accessed }}</span>
+    </div>
+
+    <div class="term_frequencies">
+      <label>Term Count</label>
+      <ul>
+        <li>
+          <label>Cyber Security</label>
+          <span>{{ article.cyber_security_occurences }}</span>
+        </li>
+        <li>
+          <label>Breach</label>
+          <span>{{ article.breach_occurences }}</span>
+        </li>
+        <li>
+          <label>IP</label>
+          <span>{{ article.ip_occurences }}</span>
+        </li>
+        <li>
+          <label>Hack</label>
+          <span>{{ article.hack_occurences }}</span>
+        </li>
+      </ul>
     </div>
   </div>
 
