@@ -140,3 +140,7 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# IntelliJ idea folder
+.idea
+*.iml
