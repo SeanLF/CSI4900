@@ -17,4 +17,4 @@ class Article(models.Model):
     breach_occurences = models.PositiveSmallIntegerField(default=0)
 
     # class attribute
-    security_breach = models.NullBooleanField()
+    security_breach = models.CharField(max_length=5, null=True)
