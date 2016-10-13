@@ -41,6 +41,9 @@ class FetchData:
                     a.parse()
                     a.nlp()
 
+                    if len(a.text.strip()) == 0:
+                        continue
+
                     # Create object
                     article = Article(query=query, url=url, title=a.title, text=a.text, nlp_keywords=a.keywords)
 
