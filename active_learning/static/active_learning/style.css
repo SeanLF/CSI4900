@@ -27,9 +27,13 @@ a, a:visited {
 }
 
 .index_page .header, .detail_page .header {
-  background-color: #2196f3;
+  background-color: #3F51B5;
   color: #fff;
   padding: 2rem;
+}
+
+.detail_page .header {
+  padding-bottom: 3rem;
 }
 
 .detail_page .header .title {
@@ -80,8 +84,39 @@ label:after {
 /* Article class */
 .cyber.security, .cyber.security:visited {color: #E91E63;}
 .trump, .trump:visited {color:#009688;}
-.security, .security:visited {color:#3F51B5;}
+.security, .security:visited {color:#2196F3;}
 .privacy, .privacy:visited {color:#9C27B0;}
 .cyber, .cyber:visited {color:#795548;}
 .health, .health:visited {color:#4CAF50;}
 .sport, .sport:visited {color:#FF9800;}
+
+.buttons {
+  margin-left: 2rem;
+  height: 0;
+}
+
+.buttons button {
+  border-radius: 5px;
+  border: none;
+  background: #E91E63;
+  color: white;
+  font-size: 1.1rem;
+  top: -1.1rem;
+  position: relative;
+  margin: 0rem 0.2rem;
+  padding: 0.4rem 0.9rem;
+  text-transform: uppercase;
+  outline: none;
+  transition: box-shadow .2s cubic-bezier(.4,0,1,1),background-color .2s cubic-bezier(.4,0,.2,1),color .2s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.2),0 1px 5px 0 rgba(0,0,0,.12);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.buttons button:focus {
+  outline: none;
+}
+
+.buttons button:active {
+  box-shadow: 0 0 8px rgba(0,0,0,.18),0 8px 16px rgba(0,0,0,.36);
+}

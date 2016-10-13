@@ -34,7 +34,7 @@ def term_frequencies(request):
         # take care of case sensitivity
         text = article.text.lower()
 
-        article.cyber_security_occurences = len(re.findall(r'\bcyber\s?security\b', text))
+        article.cyber_security_occurences = len(re.findall(r'\bcyber\s?\-?security\b', text))
         article.hack_occurences = len(re.findall(r'\bhack\b', text))
         article.ip_occurences = len(re.findall(r'\bip\b', text))
         article.breach_occurences = len(re.findall(r'\bbreach\b', text))
