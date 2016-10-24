@@ -1,0 +1,5 @@
+django
+progressbar2
+libact
+feedparser
+newspaper3k
