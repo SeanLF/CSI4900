@@ -10,7 +10,8 @@ class OurLabeler(Labeler):
         self.pusher_client = kwargs.pop('pusher_client', None)
         global pusher
         # listen for response from client, then disconnect
-        pusher = pusherclient.Pusher(self.pusher_client.key, True, self.pusher_client.secret, {'user_id': 'learner'})
+        # HACK: shouldn't get key and secret like this
+        pusher = pusherclient.Pusher(self.pusher_client._pusher_client.key, True, self.pusher_client._pusher_client.secret, {'user_id': 'learner'})
         pusher.connection.bind('pusher:connection_established', self.connect_handler)
         pusher.connect()
 
