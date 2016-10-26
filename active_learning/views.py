@@ -7,8 +7,10 @@ from .learning import Learn
 import newspaper.settings
 import pusher
 import os
+from django.views.decorators.clickjacking import xframe_options_exempt
 
 
+@xframe_options_exempt
 def index(request):
     if Article.objects.count() == 0:
         fd = FetchData()
@@ -21,6 +23,7 @@ def index(request):
     return render(request, 'active_learning/index.html', context)
 
 
+@xframe_options_exempt
 def detail(request, article_id):
     article = get_object_or_404(Article, pk=article_id)
     return render(request, 'active_learning/detail.html', {'article': article})
