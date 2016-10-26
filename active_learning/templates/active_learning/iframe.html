@@ -1,0 +1,69 @@
+{% load static %}
+
+<link rel="stylesheet" type="text/css" href="{% static 'active_learning/server-output-window.css' %}" />
+
+<style media="screen">
+  body {
+    margin: 0;
+  }
+  iframe {
+    border: none;
+    height: 100vh;
+    width: 100vw;
+  }
+</style>
+
+<!-- Pusher stuff -->
+<script src="https://js.pusher.com/3.2/pusher.min.js"></script>
+<script>
+  function printToConsoleWindow(string){
+    var window = document.getElementById('console-output')
+    var div = document.createElement('div')
+    div.append(string)
+    window.append(div)
+  }
+
+  // Enable pusher logging - don't include this in production
+  Pusher.logToConsole = true;
+
+  window.pusher = new Pusher('dae76452b70176489ff1', {
+    encrypted: true
+  });
+
+  window.channel = pusher.subscribe('presence-channel');
+  channel.bind('write-to-console-window', function(data) {
+    printToConsoleWindow(data.message)
+  });
+
+  channel.bind('request_label', function(data){
+    printToConsoleWindow("Please label this article\n" + JSON.stringify(data))
+    window.idOfArticleToLabel = data.id
+    document.getElementsByTagName('iframe')[0].src = data.url
+  })
+</script>
+
+<iframe src="{% url 'active_learning:index' %}" style="width: 100%; height: 100%; margin: none;"></iframe>
+
+<div id="console-output-window" style="display: none;">
+  <div id="console-output-header">
+    Output
+  </div>
+  <div id="console-output">
+
+  </div>
+</div>
+<div id="console-toggle-button" title="Open/Close output">
+  &lt;/&gt;
+</div>
+
+<!-- Toggle visibility of the console window -->
+<script type="text/javascript">
+  document.getElementById('console-toggle-button').addEventListener('click', function(e) {
+    var x = document.getElementById('console-output-window').style
+    if (x.display == 'none' ) {
+      x.display = ''
+    } else {
+      x.display = 'none'
+    }
+  })
+</script>

@@ -48,12 +48,31 @@
   </div>
 
   <div class="buttons">
-    <button type="button" name="button">Yes</button>
-    <button type="button" name="button">Maybe</button>
-    <button type="button" name="button">No</button>
+    <button type="button" id="yes" name="button">Yes</button>
+    <button type="button" id="maybe" name="button">Maybe</button>
+    <button type="button" id="no" name="button">No</button>
   </div>
 
   <div class="text">
       <p id="text">{{ article.text }}</p>
   </div>
 </div>
+
+<script type="text/javascript">
+  function label(label){
+    if (parent.channel != undefined && parent.idOfArticleToLabel != null) {
+      sent = parent.channel.trigger('client-label', {article_id: 1, label: label})
+      if (sent){
+        parent.toLabel = null
+      }
+    } else {
+      alert("can't do that right now")
+    }
+  }
+
+  document.getElementsByClassName('buttons')[0].addEventListener('click', function(event){
+    if (event.target.tagName === 'BUTTON'){
+      label(event.target.id)
+    }
+  })
+</script>

@@ -1,0 +1,57 @@
+#console-toggle-button:active {
+  box-shadow: 0 0 8px rgba(0,0,0,.18),0 8px 16px rgba(0,0,0,.36);
+}
+#console-toggle-button {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  background: rgba(1,1,1, 0.8);
+  padding: 1rem;
+  margin: 1rem;
+  border-bottom: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  color: #34af34;
+  outline: none;
+  transition: box-shadow .2s cubic-bezier(.4,0,1,1),background-color .2s cubic-bezier(.4,0,.2,1),color .2s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 2px 2px 0 rgba(0,0,0,.14),0 3px 1px -2px rgba(0,0,0,.2),0 1px 5px 0 rgba(0,0,0,.12);
+  user-select: none;
+}
+#console-output-window {
+  display: flex;
+  flex-flow: column nowrap;
+  position: fixed;
+  top: 1vh;
+  left: 1vw;
+  height: 88vh;
+  width: 94vw;
+  border-radius: 3px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.45), 0 6px 6px rgba(0, 0, 0, 0.44);
+  font-size: smaller;
+  color: #34af34;
+  background: rgba(1,1,1, 0.8);
+  font-family: monospace;
+  white-space: pre-wrap;
+}
+
+#console-output-header {
+  color: black;
+  background-color: grey;
+}
+
+#console-output {
+  overflow-y: auto;
+  padding: 2rem;
+  display: flex;
+  flex-flow: column nowrap;
+}
+
+#console-output > div:before {
+  content: '> ';
+  font-weight: bolder;
+  color: white;
+}
+#console-output > div {
+  margin-bottom: 1rem;
+  white-space: pre-wrap;
+}
