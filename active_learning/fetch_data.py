@@ -5,6 +5,8 @@ import feedparser
 from .models import Article
 import newspaper.settings
 import re
+import os
+from googleapiclient.discovery import build
 
 
 class FetchData:
@@ -12,14 +14,23 @@ class FetchData:
 
     # Fetch Google News URLs for queries
     def getGoogleNewsURLs(self):
+        # build the service to query google news
+        service = build("customsearch", "v1", developerKey=os.environ['GOOGLE_CUSTOM_SEARCH_API_KEY'])
+
         links_per_query = {}
         print('Fetching links from Google News')
         bar = progressbar.ProgressBar()
+
         for query in bar(self.queries):
-            queryURL = "https://news.google.ca/news/section?q=" + query.replace(' ', '+') + "&output=atom"
             links_per_query[query] = []
-            for entry in feedparser.parse(queryURL)['entries']:
-                links_per_query[query].append(entry['link'])
+
+            # loop over how many times we want to query
+            for startIndex in [1, 11]:
+                response = service.cse().list(
+                    q=query, cx=os.environ['GOOGLE_CUSTOM_SEARCH_CX'],
+                    fields='items(link)', start=str(startIndex)
+                ).execute()
+                links_per_query[query] += list(map(lambda item: item['link'], response['items']))
 
         return links_per_query
 

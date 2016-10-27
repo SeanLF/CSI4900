@@ -8,3 +8,5 @@ sklearn
 scipy
 git+https://github.com/zWaR/PythonPusherClient.git
 django-dotenv
+nltk
+google-api-python-client
