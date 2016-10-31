@@ -1,70 +1,94 @@
+# for acquire data
+import os
+import requests
+# for download_and_extract_text_from_url
 import newspaper
-from newspaper import Article as NArticle
-import progressbar
-import feedparser
-from .models import Article
-import newspaper.settings
+# for tokenize_and_stem
 import re
+from nltk.stem.porter import PorterStemmer
+# for tf_idf_matrix
+from sklearn.feature_extraction.text import TfidfVectorizer
+# for feature_selection
+from sklearn.feature_selection import SelectKBest, chi2
 
 
-class FetchData:
-    queries = ['cyber security', 'security', 'privacy', 'cyber', 'health', 'sport', 'trump']
+def bing_news_search(query, max_results=100, offset=0):
+    url = 'https://api.cognitive.microsoft.com/bing/v5.0/news/search'
+    # query string parameters
+    payload = {'q': query, 'count': str(max_results), 'safeSearch': 'Off', 'mkt': 'en-ca', 'offset': str(offset)}
+    # custom headers
+    headers = {'Ocp-Apim-Subscription-Key': os.environ['BING_NEWS_SEARCH_API_KEY']}
+    # make GET request
+    r = requests.get(url, params=payload, headers=headers)
+    # get JSON response
+    return r.json()
 
-    # Fetch Google News URLs for queries
-    def getGoogleNewsURLs(self):
-        links_per_query = {}
-        print('Fetching links from Google News')
-        bar = progressbar.ProgressBar()
-        for query in bar(self.queries):
-            queryURL = "https://news.google.ca/news/section?q=" + query.replace(' ', '+') + "&output=atom"
-            links_per_query[query] = []
-            for entry in feedparser.parse(queryURL)['entries']:
-                links_per_query[query].append(entry['link'])
 
-        return links_per_query
+def get_links(search_query, max_results):
+    urls = []
+    while len(urls) < max_results:
+        json = bing_news_search(search_query, max_results, len(urls))
+        # Don't call more than needed
+        if urls == []:
+            max_results = min(max_results, json['totalEstimatedMatches'])
+        urls += [search_result['url'] for search_result in json['value']]
+    return urls
 
-    def processAndSaveDataFromLinks(self, links_per_query):
-        print("\n\nMining top articles from", len(self.queries), "Google News searches.")
 
-        for query, urls in links_per_query.items():
-            print("\nQuery:", query)
-            # Display progress
-            bar = progressbar.ProgressBar()
+def download_and_extract_text_from_url(url):
+    # Using the newspaper library:
+    # download the article
+    # extract the text
+    article = newspaper.Article(url=url, language="en")
+    article.download()
+    try:
+        article.parse()
+    except newspaper.article.ArticleException:
+        pass
+    return article
 
-            for url in bar(urls):
-                # Fetch the HTML from the links
-                a = NArticle(url=url, language="en")
-                a.download()
 
-                # Parse and extract title, text and keywords
-                try:
-                    a.parse()
-                    a.nlp()
+def clean_string(string):
+    # Format the string to be case insensitive (lower case)
+    # Remove special formatting characters (ex: new line character)
+    # return the cleaned string
+    return string.lower().replace('\n', ' ')
 
-                    if len(a.text.strip()) == 0:
-                        continue
 
-                    # Create object
-                    article = Article(query=query, url=url, title=a.title, text=a.text, nlp_keywords=a.keywords)
+def tokenize_and_stem(string):
+    stems = []
+    stemmer = PorterStemmer()
+    # from nltk.corpus import stopwords
+    # stopwords = stopwords.words('english') + ['the', 'to', 'and', 'of', 'a', 'is', 'that', 'in']
 
-                    # Set word frequencies
-                    self.findWordFrequencies(article)
+    # Tokenize the string using a regular expression matching words containing at least 2 characters
+    regex = r"\b[a-z]{2,}\b"
+    tokens = re.findall(regex, string)
 
-                    # Save in database
-                    article.save()
+    # Stem each token (could ignore stopwords)
+    for token in tokens:
+        # if token not in self.stopwords:
+        stems.append(stemmer.stem(token))
 
-                except newspaper.article.ArticleException:
-                    print('Failed for', url)
-                    pass
+    # return the stemmed tokens
+    return stems
 
-    def findWordFrequencies(self, article):
-        with open(newspaper.settings.NLP_STOPWORDS_EN, 'r') as f:
-            stopwords = set([w.strip() for w in f.readlines()])
 
-        # Handle case sensitivity
-        text = article.text.lower()
+def tf_idf_matrix(raw_documents, tokenizing_method):
+    # Use scikit-learn to generate a matrix[document][feature] = tf-idf for feature
+    tfidf = TfidfVectorizer(tokenizer=tokenizing_method, stop_words='english')
+    tfs = tfidf.fit_transform(raw_documents)
 
-        article.cyber_security_occurences = len(re.findall(r'\bcyber\s?\-?security\b', text))
-        article.hack_occurences = len(re.findall(r'\bhack', text))
-        article.ip_occurences = len(re.findall(r'\bips?\b', text))
-        article.breach_occurences = len(re.findall(r'\bbreach', text))
+    # return the rizer and matrix
+    return {'matrix': tfs, 'vectorizer': tfidf}
+
+
+def feature_selection(tf_idf_matrix, document_classes_for_matrix, max_features, feature_names):
+    # Use 𝛘² or Pearson's product moment coefficient to select the k best features
+    ch2 = SelectKBest(chi2, k=max_features)
+    X_train = ch2.fit_transform(tf_idf_matrix, document_classes_for_matrix)
+
+    feature_names = [feature_names[i] for i in ch2.get_support(indices=True)]
+
+    # return array of features to use
+    return feature_names
