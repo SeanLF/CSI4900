@@ -19,7 +19,7 @@ class Learn:
           ssl=True
         )
 
-    articles = Article.objects.all().values('cyber_security_occurences', 'hack_occurences', 'ip_occurences', 'breach_occurences', 'id', 'security_breach')
+    articles = Article.objects.all()
 
     def learn(self):
         lookup_table = []
@@ -28,8 +28,7 @@ class Learn:
 
         for article in self.articles:
             lookup_table.append(article['id'])
-            X.append([float(article['breach_occurences']), float(article['cyber_security_occurences']),
-                      float(article['hack_occurences']), float(article['ip_occurences'])])
+            X.append([0, 0, 0, 0])
             Y.append(article['security_breach'])
 
         dataset = Dataset(X, Y)
