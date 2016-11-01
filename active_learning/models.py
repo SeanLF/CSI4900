@@ -5,7 +5,7 @@ class Article(models.Model):
     query = models.ForeignKey('SearchQuery', on_delete=models.CASCADE)
     url = models.TextField()
     date_accessed = models.DateField(auto_now_add=True)
-    title = models.TextField()
+    title = models.TextField(unique=True)
     text = models.TextField()
     # class attribute
     class_label = models.ForeignKey('Label', on_delete=models.CASCADE, null=True)
