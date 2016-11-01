@@ -9,14 +9,9 @@
       <a href="{{article.url}}">{{ article.title }}</a>
     </div>
 
-    <div class="keywords">
-      <label for="keywords">Keywords</label>
-      <span id="url">{{ article.nlp_keywords }}</span>
-    </div>
-
     <div class="query">
-      <label for="query">Google News query</label>
-      <span id="query">{{ article.query }}</span>
+      <label for="query">News query</label>
+      <span id="query">{{ article.query.search_query }}</span>
     </div>
 
     <div class="date_accessed">
