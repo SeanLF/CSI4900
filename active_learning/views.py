@@ -63,18 +63,24 @@ def get_articles_task(search_query, max_results, label):
     pusher_client = get_pusher_client()
 
     # urls is an array of strings
-    links = get_links(search_query, max_results)
-    articles = [get_article_from_url(links[i]) for i in range(len(links))]
+    links = get_links(search_query.search_query, max_results)
+    pusher_client.trigger('presence-channel', 'get_articles', 'got links from bing')
 
-    pusher_client.trigger('presence-channel', 'get_articles', 'got links from bing and fetched articles')
+    # articles = [get_article_from_url(links[i]) for i in range(len(links))]
 
-    for article in articles:
+    for link in links:
+        article = get_article_from_url(link)
         text = clean_string(article.text)
+
+        if text == '':
+            continue
+
         a = Article(url=article.url, title=article.title, text=text)
         a.label_id = label.id
         a.query_id = search_query.id
         try:
             a.save()  # save to DB
+            pusher_client.trigger('presence-channel', 'get_articles', 'got article from link')
         except IntegrityError:
             pusher_client.trigger('presence-channel', 'get_articles', 'detected article with duplicate title')
             continue
