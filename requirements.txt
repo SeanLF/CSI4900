@@ -8,3 +8,4 @@ sklearn
 scipy
 git+https://github.com/zWaR/PythonPusherClient.git
 django-dotenv
+django-after-response

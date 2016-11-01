@@ -8,5 +8,6 @@ urlpatterns = [
     url(r'^article$', views.index, name='index'),
     url(r'^article/(?P<article_id>[0-9]+)/$', views.detail, name='detail'),
     url(r'^learn$', views.learn),
-    url(r'^pusher/auth', views.auth)
+    url(r'^pusher/auth', views.auth),
+    url(r'^get_articles', views.get_articles),
 ]

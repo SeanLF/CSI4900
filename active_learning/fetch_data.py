@@ -35,7 +35,7 @@ def get_links(search_query, max_results):
     return urls
 
 
-def download_and_extract_text_from_url(url):
+def get_article_from_url(url):
     # Using the newspaper library:
     # download the article
     # extract the text
