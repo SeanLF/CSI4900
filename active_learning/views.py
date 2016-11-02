@@ -41,10 +41,14 @@ def iframe(request):
 
 
 def learn(request):
+    do_learn.after_response()
+    return HttpResponse(status=200)
+
+
+@after_response.enable
+def do_learn():
     learn = Learn()
     learn.learn()
-
-    return HttpResponse(status=200)
 
 
 def get_articles(request):

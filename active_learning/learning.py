@@ -6,6 +6,9 @@ from libact.models import Perceptron
 from active_learning.models import Article
 from active_learning.our_labeler import OurLabeler
 from active_learning.fetch_data import tokenize_and_stem, tf_idf_matrix, feature_selection
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_selection import SelectKBest, chi2
+import numpy
 import os
 
 import pusher
@@ -46,7 +49,10 @@ class Learn:
         # new_instance = tf_idf.transform([string])
         # new_instance = use ch2.transform(new_instance)
 
-        dataset = Dataset(X_train, y_train)
+        take_only_x_labeled = int(len(y_train) / 10)
+        temp = y_train[:take_only_x_labeled]
+        spliced_y_train = temp + [None]*(len(y_train) - len(temp))
+        dataset = Dataset(numpy.array(X_train.toarray()), spliced_y_train)
         labeler = OurLabeler(label_name=['yes', 'maybe', 'no'], pusher_client=self.pusher_client)
         query_strategy = QUIRE(dataset)
         model = SVM()
