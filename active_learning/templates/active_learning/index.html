@@ -10,6 +10,10 @@
   </div>
   <div class="text">
     {% if articles %}
+      <p>
+        <label>Length</label>{{count}}
+      </p>
+      <hr>
         <ul>
         {% for article in articles %}
           <li><a class="{{article.query}}" href="{% url 'active_learning:detail' article.id %}">{{ article.title }}</a></li>

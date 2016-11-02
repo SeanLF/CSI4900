@@ -15,7 +15,7 @@ from sklearn.feature_selection import SelectKBest, chi2
 def bing_news_search(query, max_results=100, offset=0):
     url = 'https://api.cognitive.microsoft.com/bing/v5.0/news/search'
     # query string parameters
-    payload = {'q': query, 'count': str(max_results), 'safeSearch': 'Off', 'mkt': 'en-ca', 'offset': str(offset)}
+    payload = {'q': query, 'count': str(max_results), 'safeSearch': 'Off', 'mkt': 'en-ca', 'offset': str(offset), 'freshness': 'Day'}
     # custom headers
     headers = {'Ocp-Apim-Subscription-Key': os.environ['BING_NEWS_SEARCH_API_KEY']}
     # make GET request
@@ -35,17 +35,17 @@ def get_links(search_query, max_results):
     return urls
 
 
-def get_article_from_url(url):
-    # Using the newspaper library:
-    # download the article
-    # extract the text
-    article = newspaper.Article(url=url, language="en")
-    article.download()
-    try:
-        article.parse()
-    except newspaper.article.ArticleException:
-        pass
-    return article
+def download_articles(articles):
+    urls = [a.url for a in articles]
+    failed_articles = []
+    filled_requests = newspaper.network.multithread_request(urls)
+    # Note that the responses are returned in original order
+    for index, req in enumerate(filled_requests):
+        html = newspaper.network.get_html(req.url, response=req.resp)
+        articles[index].set_html(html)
+        if not req.resp:
+            failed_articles.append(articles[index])
+    articles = [a for a in articles if a.html]
 
 
 def clean_string(string):

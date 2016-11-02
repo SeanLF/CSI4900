@@ -4,9 +4,11 @@ from django.http import JsonResponse, HttpResponse
 from django.db import IntegrityError
 from django.views.decorators.clickjacking import xframe_options_exempt
 from .models import Article, Label, SearchQuery
-from .fetch_data import *
+from .fetch_data import clean_string, download_articles, get_links
 from .learning import Learn
-import newspaper.settings
+from numpy import unique
+from requests import head
+import newspaper
 import pusher
 import os
 import after_response
@@ -24,7 +26,7 @@ def get_pusher_client():
 @xframe_options_exempt
 def index(request):
     articles = Article.objects.all().order_by("query")
-    context = {'articles': articles}
+    context = {'articles': articles, 'count': len(articles)}
     return render(request, 'active_learning/index.html', context)
 
 
@@ -62,27 +64,32 @@ def get_articles(request):
 def get_articles_task(search_query, max_results, label):
     pusher_client = get_pusher_client()
 
-    # urls is an array of strings
+    # get unique links
     links = get_links(search_query.search_query, max_results)
+    links = unique([head(link).headers['Location'] for link in links])
     pusher_client.trigger('presence-channel', 'get_articles', 'got links from bing')
 
-    # articles = [get_article_from_url(links[i]) for i in range(len(links))]
+    articles = [newspaper.Article(url=links[i]) for i in range(len(links))]
+    download_articles(articles)
 
-    for link in links:
-        article = get_article_from_url(link)
+    for article in articles:
+        try:
+            article.parse()
+        except newspaper.article.ArticleException:
+            continue
+
         text = clean_string(article.text)
-
         if text == '':
             continue
 
         a = Article(url=article.url, title=article.title, text=text)
-        a.label_id = label.id
+        a.class_label_id = label.id
         a.query_id = search_query.id
         try:
             a.save()  # save to DB
             pusher_client.trigger('presence-channel', 'get_articles', 'got article from link')
-        except IntegrityError:
-            pusher_client.trigger('presence-channel', 'get_articles', 'detected article with duplicate title')
+        except IntegrityError as e:
+            pusher_client.trigger('presence-channel', 'get_articles', str(e))
             continue
 
     pusher_client.trigger('presence-channel', 'get_articles', 'finished getting articles')
