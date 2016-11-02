@@ -25,7 +25,7 @@ def get_pusher_client():
 
 @xframe_options_exempt
 def index(request):
-    articles = Article.objects.all().order_by("query")
+    articles = Article.objects.all().order_by("class_label_id")
     context = {'articles': articles, 'count': len(articles)}
     return render(request, 'active_learning/index.html', context)
 

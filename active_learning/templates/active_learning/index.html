@@ -10,13 +10,19 @@
   </div>
   <div class="text">
     {% if articles %}
-      <p>
+      <div>
+        <label for="link_colors">Legend</label>
+        <span id="link_colors">
+          <span class="yes-class">Yes</span>,
+          <span class="no-class">No</span>
+        </span>
+        <br>
         <label>Length</label>{{count}}
-      </p>
+      </div>
       <hr>
         <ul>
         {% for article in articles %}
-          <li><a class="{{article.query}}" href="{% url 'active_learning:detail' article.id %}">{{ article.title }}</a></li>
+          <li><a class="{{article.class_label.label}}-class" href="{% url 'active_learning:detail' article.id %}">{{ article.title }}</a></li>
         {% endfor %}
         </ul>
     {% else %}

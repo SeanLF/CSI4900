@@ -11,9 +11,9 @@ body {
   font-family: roboto, sans-serif;
 }
 
-a, a:visited {
+/*a, a:visited {
   color: blue;
-}
+}*/
 
 .index_page, .detail_page {
   background: #fff;
@@ -82,9 +82,9 @@ label:after {
 }
 
 /* Article class */
-.cyber.security, .cyber.security:visited {color: #E91E63;}
-.trump, .trump:visited {color:#009688;}
-.security, .security:visited {color:#2196F3;}
+.yes-class, .cyber.security:visited {color: #2196F3;}
+.no-class, .trump:visited {color:#E91E63;}
+.security, .security:visited {color:#009688;}
 .privacy, .privacy:visited {color:#9C27B0;}
 .cyber, .cyber:visited {color:#795548;}
 .health, .health:visited {color:#4CAF50;}
