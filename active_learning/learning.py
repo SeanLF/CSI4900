@@ -9,21 +9,11 @@ from active_learning.fetch_data import tokenize_and_stem, tf_idf_matrix, feature
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.feature_selection import SelectKBest, chi2
 import numpy
-import os
-
-import pusher
 
 
 class Learn:
     def __init__(self, **kwargs):
-        self.pusher_client = pusher.Pusher(
-          app_id=os.environ['PUSHER_APP_ID'],
-          key=os.environ['PUSHER_KEY'],
-          secret=os.environ['PUSHER_SECRET'],
-          ssl=True
-        )
-
-    articles = Article.objects.all()
+        self.articles = Article.objects.all()
 
     def learn(self):
         lookup_table = []
@@ -53,7 +43,7 @@ class Learn:
         temp = y_train[:take_only_x_labeled]
         spliced_y_train = temp + [None]*(len(y_train) - len(temp))
         dataset = Dataset(numpy.array(X_train.toarray()), spliced_y_train)
-        labeler = OurLabeler(label_name=['yes', 'maybe', 'no'], pusher_client=self.pusher_client)
+        labeler = OurLabeler(label_name=['yes', 'maybe', 'no'])
         query_strategy = QUIRE(dataset)
         model = SVM()
 

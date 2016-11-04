@@ -1,5 +1,7 @@
 from libact.base.interfaces import Labeler
 import pusherclient
+from .utils import format_pusher_channel_name, get_pusher_client
+from os import environ
 
 
 class OurLabeler(Labeler):
@@ -7,7 +9,8 @@ class OurLabeler(Labeler):
 
     def __init__(self, **kwargs):
         self.label_name = kwargs.pop('label_name', None)
-        self.pusher_client = kwargs.pop('pusher_client', None)
+        self.pusher_client = get_pusher_client()
+        self.channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
         global pusher
         # listen for response from client, then disconnect
         # HACK: shouldn't get key and secret like this
@@ -17,7 +20,7 @@ class OurLabeler(Labeler):
 
     # Feature is a dictionary with url and id as keys
     def label(self, feature):
-        self.pusher_client.trigger('presence-channel', 'request_label', feature)
+        self.pusher_client.trigger(self.channel_name, 'request_label', feature)
 
         while (self.label_name is not None) and (self.lbl not in self.label_name):
             from time import sleep
@@ -30,7 +33,7 @@ class OurLabeler(Labeler):
         # We can't subscribe until we've connected, so we use a callback handler
         # to subscribe when able
     def connect_handler(self, data):
-        channel = pusher.subscribe('presence-channel')
+        channel = pusher.subscribe(self.channel_name)
         channel.bind('client-label', self.callback)
 
     def callback(self, data):

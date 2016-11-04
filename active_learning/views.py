@@ -3,24 +3,15 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 from django.db import IntegrityError
 from django.views.decorators.clickjacking import xframe_options_exempt
-from .models import Article, Label, SearchQuery
-from .fetch_data import clean_string, download_articles, get_links
-from .learning import Learn
 from numpy import unique
 from requests import head
 import newspaper
-import pusher
-import os
 import after_response
-
-
-def get_pusher_client():
-    return pusher.Pusher(
-      app_id=os.environ['PUSHER_APP_ID'],
-      key=os.environ['PUSHER_KEY'],
-      secret=os.environ['PUSHER_SECRET'],
-      ssl=True
-    )
+from os import environ
+from .models import Article, Label, SearchQuery
+from .fetch_data import clean_string, download_articles, get_links
+from .learning import Learn
+from .utils import format_pusher_channel_name, get_pusher_client
 
 
 @xframe_options_exempt
@@ -37,7 +28,9 @@ def detail(request, article_id):
 
 
 def iframe(request):
-    return render(request, 'active_learning/iframe.html', {})
+    presence_channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
+    PUSHER_KEY = environ['PUSHER_KEY']
+    return render(request, 'active_learning/iframe.html', {'presence_channel_name': presence_channel_name, 'PUSHER_KEY': PUSHER_KEY})
 
 
 def learn(request):
@@ -67,6 +60,7 @@ def get_articles(request):
 @after_response.enable
 def get_articles_task(search_query, max_results, label):
     pusher_client = get_pusher_client()
+    presence_channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
 
     # get links from Bing
     links = get_links(search_query.search_query, max_results)
@@ -79,7 +73,8 @@ def get_articles_task(search_query, max_results, label):
             temp_links.append(temp.headers['Location'])
     links = unique(temp_links)
 
-    pusher_client.trigger('presence-channel', 'get_articles', 'got unique links from bing')
+    channel_name = pusher_channel_formatter(os.enc)
+    pusher_client.trigger(presence_channel_name, 'get_articles', 'got unique links from bing')
 
     articles = [newspaper.Article(url=links[i]) for i in range(len(links))]
     download_articles(articles)
@@ -99,12 +94,12 @@ def get_articles_task(search_query, max_results, label):
         a.query_id = search_query.id
         try:
             a.save()  # save to DB
-            pusher_client.trigger('presence-channel', 'get_articles', 'got article from link')
+            pusher_client.trigger(presence_channel_name, 'get_articles', 'got article from link')
         except IntegrityError as e:
-            pusher_client.trigger('presence-channel', 'get_articles', str(e))
+            pusher_client.trigger(presence_channel_name, 'get_articles', str(e))
             continue
 
-    pusher_client.trigger('presence-channel', 'get_articles', 'finished getting articles')
+    pusher_client.trigger(presence_channel_name, 'get_articles', 'finished getting articles')
 
 
 @csrf_exempt

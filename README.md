@@ -20,10 +20,12 @@ python3 manage.py migrate
 ### Environment
 Create a `.env` file in the project root folder.
 ```.env
+ENVIRONMENT=dev
 PUSHER_APP_ID=_________________
 PUSHER_KEY=_________________
 PUSHER_SECRET=_________________
 BING_NEWS_SEARCH_API_KEY=_________________
+PRESENCE_CHANNEL_NAME=presence-channel
 ```
 Replace the underscores with your environment secrets. Contact a team member if you don't have access to Pusher or the Bing News API.
 

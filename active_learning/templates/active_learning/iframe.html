@@ -1,17 +1,7 @@
 {% load static %}
 
 <link rel="stylesheet" type="text/css" href="{% static 'active_learning/server-output-window.css' %}" />
-
-<style media="screen">
-  body {
-    margin: 0;
-  }
-  iframe {
-    border: none;
-    height: 100vh;
-    width: 100vw;
-  }
-</style>
+<link rel="stylesheet" type="text/css" href="{% static 'active_learning/iframe.css' %}" />
 
 <!-- Pusher stuff -->
 <script src="https://js.pusher.com/3.2/pusher.min.js"></script>
@@ -26,11 +16,11 @@
   // Enable pusher logging - don't include this in production
   Pusher.logToConsole = true;
 
-  window.pusher = new Pusher('dae76452b70176489ff1', {
+  window.pusher = new Pusher('{{PUSHER_KEY}}', {
     encrypted: true
   });
 
-  window.channel = pusher.subscribe('presence-channel');
+  window.channel = pusher.subscribe('{{presence_channel_name}}');
   channel.bind('write-to-console-window', function(data) {
     printToConsoleWindow(data.message)
   });
@@ -42,7 +32,7 @@
   })
 </script>
 
-<iframe src="{% url 'active_learning:index' %}" style="width: 100%; height: 100%; margin: none;"></iframe>
+<iframe src="{% url 'active_learning:index' %}"></iframe>
 
 <div id="console-output-window" style="display: none;">
   <div id="console-output-header">
