@@ -68,10 +68,18 @@ def get_articles(request):
 def get_articles_task(search_query, max_results, label):
     pusher_client = get_pusher_client()
 
-    # get unique links
+    # get links from Bing
     links = get_links(search_query.search_query, max_results)
-    links = unique([head(link).headers['Location'] for link in links])
-    pusher_client.trigger('presence-channel', 'get_articles', 'got links from bing')
+
+    # get unique links (resolve redirect URL)
+    temp_links = []
+    for link in links:
+        temp = head(link)
+        if temp.status_code != 404:
+            temp_links.append(temp.headers['Location'])
+    links = unique(temp_links)
+
+    pusher_client.trigger('presence-channel', 'get_articles', 'got unique links from bing')
 
     articles = [newspaper.Article(url=links[i]) for i in range(len(links))]
     download_articles(articles)
