@@ -3,7 +3,7 @@ from libact.base.dataset import Dataset
 from libact.query_strategies import QUIRE
 from libact.models import SVM
 from libact.models import Perceptron
-from active_learning.models import Article
+from active_learning.models import Article, Label
 from active_learning.our_labeler import OurLabeler
 from active_learning.fetch_data import tokenize_and_stem, tf_idf_matrix, feature_selection
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -43,7 +43,7 @@ class Learn:
         temp = y_train[:take_only_x_labeled]
         spliced_y_train = temp + [None]*(len(y_train) - len(temp))
         dataset = Dataset(numpy.array(X_train.toarray()), spliced_y_train)
-        labeler = OurLabeler(label_name=['yes', 'maybe', 'no'])
+        labeler = OurLabeler(labels={label.label: label.id for label in Label.objects.all()})
         query_strategy = QUIRE(dataset)
         model = SVM()
 

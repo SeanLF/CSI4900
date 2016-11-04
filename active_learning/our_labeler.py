@@ -8,9 +8,10 @@ class OurLabeler(Labeler):
     lbl = None
 
     def __init__(self, **kwargs):
-        self.label_name = kwargs.pop('label_name', None)
+        self.labels = kwargs.pop('labels', None)
         self.pusher_client = get_pusher_client()
         self.channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
+
         global pusher
         # listen for response from client, then disconnect
         # HACK: shouldn't get key and secret like this
@@ -22,13 +23,13 @@ class OurLabeler(Labeler):
     def label(self, feature):
         self.pusher_client.trigger(self.channel_name, 'request_label', feature)
 
-        while (self.label_name is not None) and (self.lbl not in self.label_name):
+        while (self.labels is not None) and (self.lbl not in self.labels.keys()):
             from time import sleep
             sleep(1)
 
-        lbl = self.lbl
+        label = self.labels[self.lbl]
         self.lbl = None
-        return self.label_name.index(lbl)
+        return label
 
         # We can't subscribe until we've connected, so we use a callback handler
         # to subscribe when able
