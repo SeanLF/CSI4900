@@ -3,21 +3,21 @@
 ## Setup
 After pulling the repository, you need to ensure that you have python3 (and pip3) installed.
 
-- ### Dependencies
-  [*libact*](https://github.com/ntucllab/libact#basic-dependencies) and [*newspaper*](https://github.com/codelucas/newspaper/#get-it-now) require specific libraries to be installed. The commands to install them will depend on your choice of OS. Check their GitHub readme for details.
+### Dependencies
+[*libact*](https://github.com/ntucllab/libact#basic-dependencies) and [*newspaper*](https://github.com/codelucas/newspaper/#get-it-now) require specific libraries to be installed. The commands to install them will depend on your choice of OS. Check their GitHub readme for details.
 
   To install dependencies, run
   ```bash
   pip3 install -r requirements.txt
   ```
 
-- ### Database
+### Database
 If you don't have a database yet, or you have pending migrations, run
 ```bash
 python3 manage.py migrate
 ```
 
-- ### Environment
+### Environment
 Create a `.env` file in the project root folder.
 ```.env
 PUSHER_APP_ID=_________________
