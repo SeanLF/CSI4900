@@ -1,11 +1,11 @@
 django
-progressbar2
+Cython
+numpy
+scipy
 libact
-feedparser
 newspaper3k
 pusher
 sklearn
-scipy
 git+https://github.com/zWaR/PythonPusherClient.git
 django-dotenv
 django-after-response
