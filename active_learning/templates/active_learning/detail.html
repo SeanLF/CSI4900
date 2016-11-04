@@ -22,7 +22,6 @@
 
   <div class="buttons">
     <button type="button" id="yes" name="button">Yes</button>
-    <button type="button" id="maybe" name="button">Maybe</button>
     <button type="button" id="no" name="button">No</button>
   </div>
 
@@ -34,7 +33,7 @@
 <script type="text/javascript">
   function label(label){
     if (parent.channel != undefined && parent.idOfArticleToLabel != null) {
-      sent = parent.channel.trigger('client-label', {article_id: 1, label: label})
+      sent = parent.channel.trigger('client-label', {label: label})
       if (sent){
         parent.toLabel = null
       }
