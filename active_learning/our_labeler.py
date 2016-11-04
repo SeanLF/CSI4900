@@ -14,8 +14,7 @@ class OurLabeler(Labeler):
 
         global pusher
         # listen for response from client, then disconnect
-        # HACK: shouldn't get key and secret like this
-        pusher = pusherclient.Pusher(self.pusher_client._pusher_client.key, True, self.pusher_client._pusher_client.secret, {'user_id': 'learner'})
+        pusher = pusherclient.Pusher(environ['PUSHER_KEY'], True, environ['PUSHER_SECRET'], {'user_id': 'active_learning_labeler'})
         pusher.connection.bind('pusher:connection_established', self.connect_handler)
         pusher.connect()
 
