@@ -1,6 +1,6 @@
 from libact.base.interfaces import Labeler
 import pusherclient
-from .utils import format_pusher_channel_name, get_pusher_client
+from active_learning.utils import format_pusher_channel_name, get_pusher_client
 from os import environ
 
 
