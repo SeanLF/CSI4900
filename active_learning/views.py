@@ -65,15 +65,18 @@ def get_articles_task(search_query, max_results, label):
     # get links from Bing
     links = get_links(search_query.search_query, max_results)
 
+    # previously fetched URLs
+    db_urls = [article.url for article in Article.objects.all()]
+
     # get unique links (resolve redirect URL)
     temp_links = []
     for link in links:
         temp = head(link)
         if temp.status_code != 404:
             temp_links.append(temp.headers['Location'])
-    links = unique(temp_links)
+    links = list(set(unique(temp_links)) - set(db_urls))
 
-    channel_name = pusher_channel_formatter(os.enc)
+    channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
     pusher_client.trigger(presence_channel_name, 'get_articles', 'got unique links from bing')
 
     articles = [newspaper.Article(url=links[i]) for i in range(len(links))]
@@ -96,7 +99,7 @@ def get_articles_task(search_query, max_results, label):
             a.save()  # save to DB
             pusher_client.trigger(presence_channel_name, 'get_articles', 'got article from link')
         except IntegrityError as e:
-            pusher_client.trigger(presence_channel_name, 'get_articles', str(e))
+            pusher_client.trigger(presence_channel_name, 'get_articles', {'errorMessage': str(e), 'article': {'url': a.url, 'title': a.title}})
             continue
 
     pusher_client.trigger(presence_channel_name, 'get_articles', 'finished getting articles')
