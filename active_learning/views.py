@@ -41,7 +41,7 @@ def learn(request):
 @after_response.enable
 def do_learn():
     learn = Learn()
-    learn.learn()
+    learn.learn(False)
 
 
 def get_articles(request):
