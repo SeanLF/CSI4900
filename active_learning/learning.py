@@ -18,9 +18,32 @@ from scipy.sparse import vstack
 
 import numpy
 
-
 class Learn:
+    '''
+    The main class used for active learning.
+
+    Included are the following active learning strategies (as part of the libact package):
+    1. Active learning by learning
+    2. Hint SVM
+    3. Query by committee
+    4. QUIRE
+    5. Random sampling
+    6. Uncertainty sampling
+    7. Variance reduction
+    '''
+
     def __init__(self, **kwargs):
+        '''
+        Initializes the learner by:
+
+        1. Getting a list of articles
+        2. Getting a list of labels
+        3. For each article:
+            a. Adding the article id to a lookup table
+            b. adding the article text to an array, X
+            c. adding the article class label (id) to an array Y
+        '''
+
         self.articles = Article.objects.all()
         self.labels = {label.label: label.id for label in Label.objects.all()}
         self.lookup_table = []
@@ -31,7 +54,19 @@ class Learn:
             self.X.append(article.text)
             self.y.append(article.class_label_id)
 
+
     def classify_svm(self, X, y):
+        '''
+        Uses SVM to classify articles before calculating and printing the accuracy
+
+        Parameters
+        ----------
+        X : array (of strings)
+            An array of strings containing the text of each article
+        y : array (of integers)
+            An array of integers containing the class label id of each article
+        '''
+
         text_clf = Pipeline([
           ('vect', CountVectorizer()),
           ('tfidf', TfidfTransformer(stop_words='english')),
@@ -42,12 +77,30 @@ class Learn:
         print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
         return scores
 
+
     def learn(self, auto_label=True, active_learning_strategy=5, num_queries=50, train_size=0.005):
+        '''
+        Uses the specified learning strategy and then queries the oracle before printing the accuracy at which the articles are labeled
+
+        Parameters
+        ----------
+        auto_label : boolean
+            Boolean representing whether we want to use our own labeler or an ideal labeler
+        active_learning_strategy : integer
+            An integer representing the learning strategy to use
+        num_queries : integer
+            The number of queries for the oracle to label
+        train_size : real number
+            A real number, between 0 and 1, representing the percentage of the corpus to use in the labeled set
+        '''
+
         X = numpy.array(TfidfVectorizer(stop_words='english').fit_transform(self.X).toarray())
         X_train, X_test, y_train, y_test, lookup_train, lookup_test = train_test_split(X, self.y, self.lookup_table, train_size=train_size, random_state=1, stratify=self.y)
+
         lookup_table = lookup_train + lookup_test
         X_train_test = numpy.array(vstack([X_train, X_test]).toarray())
         y_train_hidden_test = y_train + [None]*len(y_test)
+
         dataset = Dataset(numpy.array(vstack([X_train, X_test]).toarray()), y_train + y_train_hidden_test)
         test_set = Dataset(X_test, y_test)
 
@@ -79,6 +132,7 @@ class Learn:
         else:
             query_strategy = VarianceReduction(dataset)
 
+        # stochastic gradient descent classifier
         model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-3, n_iter=5, random_state=42)
 
         model.fit(*(dataset.format_sklearn()))

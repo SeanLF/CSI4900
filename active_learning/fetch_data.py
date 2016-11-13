@@ -13,6 +13,19 @@ from sklearn.feature_selection import SelectKBest, chi2
 
 
 def bing_news_search(query, max_results=100, offset=0):
+    '''
+    Use Bing API to query Bing news and return a JSON response
+
+    Parameters
+    ----------
+    query : string
+        The query term to be used
+    max_results : integer
+        The number of results expected per page
+    offset : integer
+        The number of articles to skip over from the start
+    '''
+
     url = 'https://api.cognitive.microsoft.com/bing/v5.0/news/search'
     # query string parameters
     payload = {'q': query, 'count': str(max_results), 'safeSearch': 'Off', 'mkt': 'en-ca', 'offset': str(offset), 'freshness': 'Day'}
@@ -25,10 +38,21 @@ def bing_news_search(query, max_results=100, offset=0):
 
 
 def get_links(search_query, max_results):
+    '''
+    Loop through the returned results and add the urls to a list
+
+    Parameters
+    ----------
+    search_query : string
+        The search query term to be used
+    max_results : integer
+        The final expected number of items to fetch
+    '''
+
     urls = []
     while len(urls) < max_results:
         json = bing_news_search(search_query, max_results, len(urls))
-        # Don't call more than needed
+        # If the url array is still empty then find the minimum between the given max_results and the returned estimate
         if urls == []:
             max_results = min(max_results, json['totalEstimatedMatches'])
         urls += [search_result['url'] for search_result in json['value']]
@@ -36,6 +60,15 @@ def get_links(search_query, max_results):
 
 
 def download_articles(articles):
+    '''
+    Loop through the returned results and add the urls to a list
+
+    Parameters
+    ----------
+    articles : list of Article
+        The list of Articles that were found
+    '''
+
     urls = [a.url for a in articles]
     failed_articles = []
     filled_requests = newspaper.network.multithread_request(urls)
@@ -49,25 +82,25 @@ def download_articles(articles):
 
 
 def clean_string(string):
-    # Format the string to be case insensitive (lower case)
-    # Remove special formatting characters (ex: new line character)
-    # return the cleaned string
     return string.lower().replace('\n', ' ')
 
 
 def tokenize_and_stem(string):
+    '''
+    Return the given string after splitting it up, word by word, then getting the stem of each work
+
+    Getting the stem of words allows for easier identification of a word in all of its forms
+    '''
+
     stems = []
     stemmer = PorterStemmer()
-    # from nltk.corpus import stopwords
-    # stopwords = stopwords.words('english') + ['the', 'to', 'and', 'of', 'a', 'is', 'that', 'in']
 
-    # Tokenize the string using a regular expression matching words containing at least 2 characters
+    # Tokenize the string using a regular expression matching words containing at least 2 alphabetical characters
     regex = r"\b[a-z]{2,}\b"
     tokens = re.findall(regex, string)
 
     # Stem each token (could ignore stopwords)
     for token in tokens:
-        # if token not in self.stopwords:
         stems.append(stemmer.stem(token))
 
     # return the stemmed tokens
@@ -75,15 +108,41 @@ def tokenize_and_stem(string):
 
 
 def tf_idf_matrix(raw_documents, tokenizing_method):
+    '''
+    Uses the raw documents with a specific tokenizing method in order to create and return a vectorizer and matrix
+
+    Parameters
+    ----------
+    raw_documents : list (of strings)
+        A list of the text contained in the documents
+    tokenizing_method : method
+        The tokenizer method to be used in the vectorizer
+    '''
+
     # Use scikit-learn to generate a matrix[document][feature] = tf-idf for feature
     tfidf = TfidfVectorizer(tokenizer=tokenizing_method, stop_words='english')
     tfs = tfidf.fit_transform(raw_documents)
 
-    # return the rizer and matrix
+    # return the vectorizer and matrix
     return {'matrix': tfs, 'vectorizer': tfidf}
 
 
 def feature_selection(tf_idf_matrix, document_classes_for_matrix, max_features, feature_names):
+    '''
+    Uses a tf idf matrix as well as the given document classes for the matrix in order to extract an array of features to use
+
+    Parameters
+    ----------
+    tf_idf_matrix : array
+        An n x n array of samples and features (training set)
+    document_classes_for_matrix : array
+        An array of n samples (target values)
+    max_features : integer
+        The number of top features to select
+    feature_names : array
+        An array of features to use
+    '''
+
     # Use 𝛘² or Pearson's product moment coefficient to select the k best features
     ch2 = SelectKBest(chi2, k=max_features)
     X_train = ch2.fit_transform(tf_idf_matrix, document_classes_for_matrix)
