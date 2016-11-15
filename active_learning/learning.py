@@ -18,6 +18,7 @@ from scipy.sparse import vstack
 
 import numpy
 
+
 class Learn:
     '''
     The main class used for active learning.
@@ -54,7 +55,6 @@ class Learn:
             self.X.append(article.text)
             self.y.append(article.class_label_id)
 
-
     def classify_svm(self, X, y):
         '''
         Uses SVM to classify articles before calculating and printing the accuracy
@@ -76,7 +76,6 @@ class Learn:
         scores = cross_val_score(text_clf, X, y, cv=10)
         print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
         return scores
-
 
     def learn(self, auto_label=True, active_learning_strategy=5, num_queries=50, train_size=0.005):
         '''

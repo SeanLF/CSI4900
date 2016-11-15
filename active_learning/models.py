@@ -1,5 +1,6 @@
 from django.db import models
 
+
 class Article(models.Model):
     query = models.ForeignKey('SearchQuery', on_delete=models.CASCADE)
     url = models.TextField()

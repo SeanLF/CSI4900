@@ -3,12 +3,12 @@ import pusherclient
 from active_learning.utils import format_pusher_channel_name, get_pusher_client
 from os import environ
 
+
 class OurLabeler(Labeler):
     '''
     Handles interaction between oracle and the process of labeling an article
     '''
-
-    lbl = None
+    self.lbl = None
 
     def __init__(self, **kwargs):
         '''
@@ -56,10 +56,10 @@ class OurLabeler(Labeler):
         self.lbl = None
         return label
 
-    '''
-    We can't subscribe until we've connected, so we use a callback handler to subscribe when able
-    '''
     def connect_handler(self, data):
+        '''
+        We can't subscribe until we've connected, so we use a callback handler to subscribe when able
+        '''
         channel = pusher.subscribe(self.channel_name)
         channel.bind('client-label', self.callback)
 
