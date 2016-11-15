@@ -8,7 +8,6 @@ class OurLabeler(Labeler):
     '''
     Handles interaction between oracle and the process of labeling an article
     '''
-    self.lbl = None
 
     def __init__(self, **kwargs):
         '''
@@ -28,6 +27,7 @@ class OurLabeler(Labeler):
         self.labels = kwargs.pop('labels', None)
         self.pusher_client = get_pusher_client()
         self.channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
+        self.lbl = None
 
         global pusher
         # listen for response from client, then disconnect
