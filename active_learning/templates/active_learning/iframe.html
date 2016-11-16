@@ -5,12 +5,17 @@
 
 <!-- Pusher stuff -->
 <script src="https://js.pusher.com/3.2/pusher.min.js"></script>
-<script>
+<script type="text/javascript">
   function printToConsoleWindow(string){
     var window = document.getElementById('console-output')
     var div = document.createElement('div')
     div.append(string)
     window.append(div)
+  }
+
+  function presentLineChart(data){
+    var toPrint = `<h1>Active Learning Results\</h1>\<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.bundle.min.js\"><\/script>\<style media=\"screen\"> #myChart{max-width: 1000px; max-height: 1000px;}<\/style><canvas id=\"myChart\"><\/canvas><script type=\"text/javascript\">var ctx=document.getElementById(\"myChart\");var myLineChart=new Chart(ctx,{type: \"line\", data: ${JSON.stringify(data)}, options:{scales:{xAxes: [{ticks:{autoSkip:true, maxTicksLimit:20}}]}}});<\/script>`
+    document.getElementsByTagName('iframe')[0].contentWindow.document.write(toPrint)
   }
 
   // Enable pusher logging - don't include this in production
@@ -29,6 +34,15 @@
     printToConsoleWindow("Please label this article\n" + JSON.stringify(data))
     window.idOfArticleToLabel = data.id
     document.getElementsByTagName('iframe')[0].src = data.url
+  })
+
+  channel.bind('model_scored', function(data){
+    printToConsoleWindow(JSON.stringify(data))
+  })
+
+  channel.bind('show_accuracy_over_queries', function(data){
+    data = {xLabels: data.labels, datasets: [{label: "Accuracy", data: data.scores}]}
+    presentLineChart(data)
   })
 </script>
 

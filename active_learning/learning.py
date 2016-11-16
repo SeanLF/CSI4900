@@ -15,8 +15,10 @@ from sklearn import metrics
 from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split
 
 from scipy.sparse import vstack
-
 import numpy
+
+from active_learning.utils import format_pusher_channel_name, get_pusher_client
+from os import environ
 
 
 class Learn:
@@ -92,6 +94,7 @@ class Learn:
         train_size : real number
             A real number, between 0 and 1, representing the percentage of the corpus to use in the labeled set
         '''
+        scores = []
 
         X = numpy.array(TfidfVectorizer(stop_words='english').fit_transform(self.X).toarray())
         X_train, X_test, y_train, y_test, lookup_train, lookup_test = train_test_split(X, self.y, self.lookup_table, train_size=train_size, random_state=1, stratify=self.y)
@@ -135,7 +138,10 @@ class Learn:
         model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-3, n_iter=5, random_state=42)
 
         model.fit(*(dataset.format_sklearn()))
-        print("Accuracy: %0.2f" % (model.score(X_test, y_test)))
+        accuracy = model.score(X_test, y_test)
+        labeled = str(dataset.len_labeled()) + '/' + str(dataset.len_unlabeled())
+        scores.append(accuracy)
+        self.show_score(accuracy, labeled)
 
         # query the oracle / active learning part
         for _ in range(num_queries):
@@ -147,6 +153,23 @@ class Learn:
                 lbl = labeler.label(dataset.data[query_id][0])
             dataset.update(query_id, lbl)  # update the dataset with newly-labeled example
             model.fit(*(dataset.format_sklearn()))  # train model with newly-updated Dataset
-            # Quickly print score
-            a = Article.objects.get(id=lookup_table[query_id])
-            print("Accuracy: %0.2f" % (model.score(X_test, y_test)), '\tLabel:', a.class_label.label, '\tTitle:', a.title)
+            accuracy = model.score(X_test, y_test)
+            labeled = str(dataset.len_labeled()) + '/' + str(dataset.len_unlabeled())
+            scores.append(accuracy)
+            self.show_score(accuracy, labeled)
+
+        self.show_accuracy_plot(num_queries, scores)
+
+    def show_score(self, accuracy, labeled_string):
+        pusher_client = get_pusher_client()
+        channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
+
+        pusher_client.trigger(channel_name, 'model_scored', {'accuracy': accuracy, 'labeled/unlabeled': labeled_string})
+        print("Accuracy: ", accuracy, '\tLabeled: ', labeled_string)
+
+    def show_accuracy_plot(self, num_queries, scores):
+        pusher_client = get_pusher_client()
+        channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
+        labels = list(range(1, num_queries + 1))
+        labels.insert(0, 'pre')
+        pusher_client.trigger(channel_name, 'show_accuracy_over_queries', {'scores': scores, 'labels': labels})
