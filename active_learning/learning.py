@@ -10,7 +10,8 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer, T
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import SelectKBest, chi2
-from sklearn.linear_model import SGDClassifier
+# from sklearn.linear_model import SGDClassifier
+from .sgd_model import SGD_Model
 from sklearn import metrics
 from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split
 
@@ -112,6 +113,9 @@ class Learn:
         else:
             labeler = IdealLabeler(dataset=Dataset(X_train_test, y_train + y_test))
 
+        # stochastic gradient descent classifier
+        model = SGD_Model(loss='hinge', penalty='l2', alpha=1e-4, n_iter=5, random_state=42)
+
         # choose an active learning strategy
         if active_learning_strategy == 1:
             strategy = 'Active learning by learning'
@@ -142,14 +146,11 @@ class Learn:
             strategy = 'Variance reduction'
             query_strategy = VarianceReduction(dataset)
 
-        # stochastic gradient descent classifier
-        model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-4, n_iter=5, random_state=42)
-
         startTime = time.time()
 
         # Train classifier on a few instances, and see how accurate it is
-        model.fit(*(dataset.format_sklearn()))
-        accuracy = model.score(X_test, y_test)
+        model.train(dataset)
+        accuracy = model.score(test_set)
         labeled = str(dataset.len_labeled()) + '/' + str(dataset.len_unlabeled())
         scores.append(accuracy)
         self.show_score(accuracy, labeled)
@@ -163,8 +164,8 @@ class Learn:
             else:
                 lbl = labeler.label(dataset.data[query_id][0])
             dataset.update(query_id, lbl)  # update the dataset with newly-labeled example
-            model.fit(*(dataset.format_sklearn()))  # train model with newly-updated Dataset
-            accuracy = model.score(X_test, y_test)
+            model.train(dataset)  # train model with newly-updated Dataset
+            accuracy = model.score(test_set)
             labeled = str(dataset.len_labeled()) + '/' + str(dataset.len_unlabeled())
             scores.append(accuracy)
             self.show_score(accuracy, labeled)
