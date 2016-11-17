@@ -19,6 +19,7 @@ import numpy
 
 from active_learning.utils import format_pusher_channel_name, get_pusher_client
 from os import environ
+import time
 
 
 class Learn:
@@ -113,6 +114,7 @@ class Learn:
 
         # choose an active learning strategy
         if active_learning_strategy == 1:
+            strategy = 'Active learning by learning'
             query_strategy = ActiveLearningByLearning(
                 dataset,
                 query_strategies=[
@@ -122,21 +124,30 @@ class Learn:
                 model=LogisticRegression(),
                 T=1000)
         elif active_learning_strategy == 2:
+            strategy = 'Hint SVM'
             query_strategy = HintSVM(dataset, Cl=0.01, p=0.8)
         elif active_learning_strategy == 3:
+            strategy = 'Query by committee'
             query_strategy = QueryByCommittee(dataset, models=[LogisticRegression(C=1.0), LogisticRegression(C=0.1)])
         elif active_learning_strategy == 4:
+            strategy = 'QUIRE'
             query_strategy = QUIRE(dataset)
         elif active_learning_strategy == 5:
+            strategy = 'Random sampling'
             query_strategy = RandomSampling(dataset)
         elif active_learning_strategy == 6:
+            strategy = 'Uncertainty sampling'
             query_strategy = UncertaintySampling(dataset, model=LogisticRegression(C=0.1))
         else:
+            strategy = 'Variance reduction'
             query_strategy = VarianceReduction(dataset)
 
         # stochastic gradient descent classifier
         model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-4, n_iter=5, random_state=42)
 
+        startTime = time.time()
+
+        # Train classifier on a few instances, and see how accurate it is
         model.fit(*(dataset.format_sklearn()))
         accuracy = model.score(X_test, y_test)
         labeled = str(dataset.len_labeled()) + '/' + str(dataset.len_unlabeled())
@@ -158,7 +169,9 @@ class Learn:
             scores.append(accuracy)
             self.show_score(accuracy, labeled)
 
-        self.show_accuracy_plot(num_queries, scores)
+        elapsedtime = (time.time() - startTime)
+
+        self.show_accuracy_plot(num_queries, scores, strategy, elapsedtime)
 
     def show_score(self, accuracy, labeled_string):
         pusher_client = get_pusher_client()
@@ -167,9 +180,9 @@ class Learn:
         pusher_client.trigger(channel_name, 'model_scored', {'accuracy': accuracy, 'labeled/unlabeled': labeled_string})
         print("Accuracy: ", accuracy, '\tLabeled: ', labeled_string)
 
-    def show_accuracy_plot(self, num_queries, scores):
+    def show_accuracy_plot(self, num_queries, scores, strategy, time):
         pusher_client = get_pusher_client()
         channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
         labels = list(range(1, num_queries + 1))
         labels.insert(0, 'pre')
-        pusher_client.trigger(channel_name, 'show_accuracy_over_queries', {'scores': scores, 'labels': labels})
+        pusher_client.trigger(channel_name, 'show_accuracy_over_queries', {'scores': scores, 'labels': labels, 'strategy': strategy, 'time': time})

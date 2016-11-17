@@ -13,8 +13,8 @@
     window.append(div)
   }
 
-  function presentLineChart(data){
-    var toPrint = `<h1>Active Learning Results\</h1>\<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.bundle.min.js\"><\/script>\<style media=\"screen\"> #myChart{max-width: 1000px; max-height: 1000px;}<\/style><canvas id=\"myChart\"><\/canvas><script type=\"text/javascript\">var ctx=document.getElementById(\"myChart\");var myLineChart=new Chart(ctx,{type: \"line\", data: ${JSON.stringify(data)}, options:{scales:{xAxes: [{ticks:{autoSkip:true, maxTicksLimit:20}}]}}});<\/script>`
+  function presentLineChart(data, strategy, time){
+    var toPrint = `\<div id='results'><h1>Active Learning Results\</h1>\<p>\<b>Strategy\</b>: ${strategy}\</p>\<p>\<b>Runtime\</b>: ${time} seconds\</p>\<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.bundle.min.js\"><\/script>\<style media=\"screen\">#results{margin: 0 auto;} #myChart{max-width: 1000px; max-height: 1000px;} body{font-family: sans-serif; display: flex;}<\/style><canvas id=\"myChart\"><\/canvas><script type=\"text/javascript\">var ctx=document.getElementById(\"myChart\");var myLineChart=new Chart(ctx,{type: \"line\", data: ${JSON.stringify(data)}, options:{scales:{xAxes: [{ticks:{autoSkip:true, maxTicksLimit:20}}]}}});<\/script>\</div>`
     document.getElementsByTagName('iframe')[0].contentWindow.document.write(toPrint)
   }
 
@@ -41,8 +41,10 @@
   })
 
   channel.bind('show_accuracy_over_queries', function(data){
-    data = {xLabels: data.labels, datasets: [{label: "Accuracy", data: data.scores}]}
-    presentLineChart(data)
+    strategy = data.strategy
+    time = data.time.toFixed(2)
+    data = {xLabels: data.labels, datasets: [{label: "Accuracy", data: data.scores, borderColor: '#E91E63', backgroundColor: 'rgba(233, 30, 99, 0.3)'}]}
+    presentLineChart(data, strategy, time)
   })
 </script>
 
