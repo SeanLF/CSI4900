@@ -37,11 +37,16 @@
 </div>
 
 <script type="text/javascript">
+  function learn(dataset_id, auto_label){
+    fetch(`/learn?dataset=${dataset_id}&auto_label=${auto_label}`)
+  }
+
   document.getElementById('start_learning').addEventListener('click', function(e){
     dataset_id = prompt("Input '1' if you want to use the Bing dataset, or '2' if you want to use the four university dataset.", 1)
     if (dataset_id != null){
         this.disabled=true
-        fetch(`/learn?dataset=${dataset_id}`)
+        auto_label = event.shiftKey
+        learn(dataset_id, auto_label)
     }
   })
 </script>

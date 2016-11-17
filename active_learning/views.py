@@ -54,18 +54,19 @@ def learn(request):
     '''
 
     dataset_id = request.GET['dataset']
+    auto_label = request.GET['auto_label']
 
-    do_learn.after_response(dataset_id)
+    do_learn.after_response(dataset_id, auto_label == u'true')
     return HttpResponse(status=200)
 
 
 @after_response.enable
-def do_learn(dataset_id):
+def do_learn(dataset_id, auto_label):
     '''
     Begins the active learning process (asynchronously)
     '''
-
-    Learn(dataset_id=dataset_id).learn(auto_label=False)
+    print(auto_label is True)
+    Learn(dataset_id=dataset_id).learn(auto_label=auto_label)
 
 
 def get_articles(request):
