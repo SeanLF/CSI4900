@@ -10,4 +10,5 @@ urlpatterns = [
     url(r'^learn$', views.learn),
     url(r'^pusher/auth', views.auth),
     url(r'^get_articles', views.get_articles),
+    url(r'^load_four_university', views.load_four_university_dataset),
 ]

@@ -3,6 +3,7 @@ from django.db import models
 
 class Article(models.Model):
     query = models.ForeignKey('SearchQuery', on_delete=models.CASCADE)
+    dataset = models.ForeignKey('DataSet', on_delete=models.CASCADE)
     url = models.TextField()
     date_accessed = models.DateField(auto_now_add=True)
     title = models.TextField(unique=True)
@@ -17,3 +18,7 @@ class Label(models.Model):
 
 class SearchQuery(models.Model):
     search_query = models.CharField(max_length=100)
+
+
+class DataSet(models.Model):
+    name = models.CharField(max_length=50)

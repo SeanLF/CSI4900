@@ -48,7 +48,7 @@ class Learn:
             c. adding the article class label (id) to an array Y
         '''
 
-        self.articles = Article.objects.all()
+        self.articles = Article.objects.filter(dataset_id=kwargs.pop('dataset_id', 1))
         self.labels = {label.label: label.id for label in Label.objects.all()}
         self.lookup_table = []
         self.X = []
@@ -80,7 +80,7 @@ class Learn:
         print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
         return scores
 
-    def learn(self, auto_label=True, active_learning_strategy=5, num_queries=50, train_size=0.005):
+    def learn(self, **kwargs):
         '''
         Uses the specified learning strategy and then queries the oracle before printing the accuracy at which the articles are labeled
 
@@ -95,6 +95,12 @@ class Learn:
         train_size : real number
             A real number, between 0 and 1, representing the percentage of the corpus to use in the labeled set
         '''
+
+        auto_label = kwargs.pop('auto_label', False)
+        active_learning_strategy = kwargs.pop('active_learning_strategy', 1)
+        num_queries = kwargs.pop('num_queries', 50)
+        train_size = kwargs.pop('train_size', 0.005)
+
         scores = []
 
         X = numpy.array(TfidfVectorizer(stop_words='english').fit_transform(self.X).toarray())

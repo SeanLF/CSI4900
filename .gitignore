@@ -1,3 +1,7 @@
+# Ignore extracted webkb
+webkb/
+webkb-data.gtar.gz
+
 # Don't commit database
 db.sqlite3
 

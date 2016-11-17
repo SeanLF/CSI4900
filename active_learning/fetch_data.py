@@ -10,6 +10,8 @@ from nltk.stem.porter import PorterStemmer
 from sklearn.feature_extraction.text import TfidfVectorizer
 # for feature_selection
 from sklearn.feature_selection import SelectKBest, chi2
+import random
+from bs4 import BeautifulSoup
 
 
 def bing_news_search(query, max_results=100, offset=0):
@@ -151,3 +153,52 @@ def feature_selection(tf_idf_matrix, document_classes_for_matrix, max_features, 
 
     # return array of features to use
     return feature_names
+
+
+def load_four_university(yes_label_id, no_label_id, root_dir='webkb'):
+    """
+    Imports the four university dataset for future insertion to the DB
+    Warning: only run once!
+    """
+
+    if not os.path.isdir(root_dir):
+        print('Could not find directory ' + root_dir +
+              '. Extract webkb-data.gtar.gz or provide correct location.')
+        return
+
+    articles = []
+
+    for folder, subs, files in os.walk(root_dir):
+        for filename in files:
+            if not('www' in filename) or ('misc' in folder) or ('other' in folder):
+                continue
+            file_location = os.path.join(folder, filename)
+
+            with open(file_location, 'r', errors='replace') as src:
+                html = src.read()
+                html = html.lower()
+
+                if html.find('<html>') > 0:
+                    html = html[html.find('<html>'):]
+                elif html.find('<') > 0:
+                    html = html[html.find('<'):]
+
+                soup = BeautifulSoup(html, 'html.parser')
+                text = soup.get_text()
+                text = clean_string(text)
+                # TODO: find a search query
+                # search_query = SearchQuery.objects.get_or_create(search_query='')[0]
+
+                if 'course' in folder:
+                    label_id = yes_label_id
+                else:
+                    label_id = no_label_id
+
+                if soup.title is not None:
+                    title = soup.title.string
+                else:
+                    title = 'No Title ' + str(random.randrange(0, 10000))
+
+                articles.append([{'url': file_location, 'title': title, 'text': text}, {'class_label_id': label_id}])  # , 'query_id': search_query_id}])
+
+    return articles
