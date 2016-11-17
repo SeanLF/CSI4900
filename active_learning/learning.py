@@ -73,7 +73,7 @@ class Learn:
           ('vect', CountVectorizer()),
           ('tfidf', TfidfTransformer(stop_words='english')),
           # ('chi2', SelectKBest(chi2, k=1000)),
-          ('clf', SGDClassifier(loss='hinge', penalty='l2', alpha=1e-3, n_iter=5, random_state=42)),
+          ('clf', SGDClassifier(loss='hinge', penalty='l2', alpha=1e-4, n_iter=5, random_state=42)),
         ])
         scores = cross_val_score(text_clf, X, y, cv=10)
         print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))
@@ -117,10 +117,10 @@ class Learn:
                 dataset,
                 query_strategies=[
                     UncertaintySampling(dataset, model=LogisticRegression(C=1.)),
-                    UncertaintySampling(dataset, model=LogisticRegression(C=.01)),
-                    HintSVM(dataset)
+                    UncertaintySampling(dataset, model=LogisticRegression(C=.01))
                 ],
-                model=LogisticRegression())
+                model=LogisticRegression(),
+                T=1000)
         elif active_learning_strategy == 2:
             query_strategy = HintSVM(dataset, Cl=0.01, p=0.8)
         elif active_learning_strategy == 3:
@@ -135,7 +135,7 @@ class Learn:
             query_strategy = VarianceReduction(dataset)
 
         # stochastic gradient descent classifier
-        model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-3, n_iter=5, random_state=42)
+        model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-4, n_iter=5, random_state=42)
 
         model.fit(*(dataset.format_sklearn()))
         accuracy = model.score(X_test, y_test)
