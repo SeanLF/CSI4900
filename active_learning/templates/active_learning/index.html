@@ -45,6 +45,7 @@
     dataset_id = prompt("Input '1' if you want to use the Bing dataset, or '2' if you want to use the four university dataset.", 1)
     if (dataset_id != null){
         this.disabled=true
+        parent.loadSpinnerScreen()
         auto_label = event.shiftKey
         learn(dataset_id, auto_label)
     }
