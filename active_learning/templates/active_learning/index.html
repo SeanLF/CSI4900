@@ -11,13 +11,15 @@
   <div class="text">
     {% if articles %}
       <div>
-        <label for="link_colors">Legend</label>
+        <button type="button" name="start_learning" onclick="this.disabled=true;fetch('/learn')">Learn</button>
+        <br>
+        <label for="link_colors">Relevant to <i>data breach</i></label>
         <span id="link_colors">
-          <span class="yes-class">Yes</span>,
+          <span class="yes-class">Yes</span> /
           <span class="no-class">No</span>
         </span>
         <br>
-        <label>Length</label>{{count}}
+        <label>Count</label>{{count}}
       </div>
       <hr>
         <ul>

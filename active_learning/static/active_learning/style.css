@@ -95,7 +95,7 @@ label:after {
   height: 0;
 }
 
-.buttons button {
+button {
   border-radius: 5px;
   border: none;
   background: #E91E63;
@@ -113,10 +113,20 @@ label:after {
   font-weight: 500;
 }
 
-.buttons button:focus {
+button:focus {
   outline: none;
 }
 
-.buttons button:active {
+button:active {
   box-shadow: 0 0 8px rgba(0,0,0,.18),0 8px 16px rgba(0,0,0,.36);
+}
+
+button[disabled] {
+    background: rgba(233, 30, 99, 0.3);
+    cursor: not-allowed;
+}
+
+.index_page button {
+  margin: 0 0 1rem 0;
+  top: auto;
 }
