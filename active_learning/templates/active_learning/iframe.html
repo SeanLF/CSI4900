@@ -24,7 +24,10 @@
   }
 
   function presentLineChart(data, strategy, time){
-    var toPrint = `\<div id='results'><h1>Active Learning Results\</h1>\<p>\<b>Strategy\</b>: ${strategy}\</p>\<p>\<b>Runtime\</b>: ${time} seconds\</p>\<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.bundle.min.js\"><\/script>\<style media=\"screen\">#results{margin: 0 auto;} #myChart{max-width: 1000px; max-height: 1000px;} body{font-family: sans-serif; display: flex;}<\/style><canvas id=\"myChart\"><\/canvas><script type=\"text/javascript\">var ctx=document.getElementById(\"myChart\");var myLineChart=new Chart(ctx,{type: \"line\", data: ${JSON.stringify(data)}, options:{scales:{xAxes: [{ticks:{autoSkip:true, maxTicksLimit:20}}]}}});<\/script>\</div>`
+    doc = document.getElementsByTagName('iframe')[0].contentWindow.document
+    doc.body.innerHTML = ''
+    doc.head.innerHTML = ''
+    var toPrint = `\<div id='results'><h1>Active Learning Results\</h1>\<p>\<b>Strategy\</b>: ${strategy}\</p>\<p>\<b>Runtime\</b>: ${time} seconds\</p>\<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.bundle.min.js\"><\/script>\<style media=\"screen\">#results{margin: 0 auto; min-width: 50vw;} #myChart{max-width: 1000px; max-height: 1000px;} body{font-family: sans-serif; display: flex;}<\/style><canvas id=\"myChart\"><\/canvas><script type=\"text/javascript\">var ctx=document.getElementById(\"myChart\");var myLineChart=new Chart(ctx,{type: \"line\", data: ${JSON.stringify(data)}, options:{scales:{xAxes: [{ticks:{autoSkip:true, maxTicksLimit:20}}]}}});<\/script>\</div>`
     writeInIFrame(toPrint)
   }
 
