@@ -10,7 +10,6 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer, T
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import SelectKBest, chi2
-# from sklearn.linear_model import SGDClassifier
 from .sgd_model import SGD_Model
 from sklearn import metrics
 from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split
