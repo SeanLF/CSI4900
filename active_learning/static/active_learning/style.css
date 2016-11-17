@@ -130,3 +130,7 @@ button[disabled] {
   margin: 0 0 1rem 0;
   top: auto;
 }
+
+summary:focus {
+  outline: none;
+}
