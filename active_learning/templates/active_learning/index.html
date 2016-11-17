@@ -23,6 +23,10 @@
         <hr>
         <details>
           <summary>Dataset: {{dataset.name}}</summary>
+          <p>
+            <label for="{{dataset.name}}">Count</label>
+            <span id="{{dataset.name}}">{{dataset.count}}</span>
+          </p>
           <ul>
           {% for article in dataset.articles %}
             <li><a class="{{article.class_label.label}}-class" href="{% url 'active_learning:detail' article.id %}">{{ article.title }}</a></li>

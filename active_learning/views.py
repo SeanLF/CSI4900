@@ -22,7 +22,8 @@ def index(request):
 
     datasets = []
     for ds in DataSet.objects.all():
-        datasets.append({'name': ds.name, 'articles': Article.objects.filter(dataset_id=ds.id).order_by("class_label_id")})
+        articles = Article.objects.filter(dataset_id=ds.id).order_by("class_label_id")
+        datasets.append({'name': ds.name, 'articles': articles, 'count': len(articles)})
     context = {'datasets': datasets}
     return render(request, 'active_learning/index.html', context)
 
