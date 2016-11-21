@@ -45,7 +45,8 @@ Make a GET request to `/get_articles` with the following params:
 - `search_query`: one or more words to get links from the Bing News Search API (if more than one word, join them with a `+`, ex: `search_query=data+breach`)
 - `max_results`: an integer for the maximum number of articles you want to fetch (ex: `max_results=1000`)
 - `label`: you assume that all articles fetched from Bing News are relevant to your label. This should be a word (ex: `label=yes`)
-> ex: `/get_articles?search_query=data+breach&max_results=300&label=yes`
+
+Full example: `/get_articles?search_query=data+breach&max_results=300&label=yes`
 
 ### Four University dataset
 To import the Four University dataset
