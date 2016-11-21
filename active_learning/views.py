@@ -77,17 +77,19 @@ def get_articles(request):
     search_query = request.GET['search_query']
     max_results = int(request.GET['max_results'])
     label = request.GET['label']
+    dataset_name = request.GET['dataset_name']
     # find or create
+    dataset_id = DataSet.objects.get_or_create(name=dataset_name)[0].id
     search_query = SearchQuery.objects.get_or_create(search_query=search_query)[0]
     label = Label.objects.get_or_create(label=label)[0]
 
-    get_articles_task.after_response(search_query, max_results, label)
+    get_articles_task.after_response(search_query, max_results, label, dataset_id)
 
     return HttpResponse(status=200)
 
 
 @after_response.enable
-def get_articles_task(search_query, max_results, label):
+def get_articles_task(search_query, max_results, label, dataset_id):
     '''
     Get the articles from Bing before saving the article details to the database
     '''
@@ -128,6 +130,7 @@ def get_articles_task(search_query, max_results, label):
         a = Article(url=article.url, title=article.title, text=text)
         a.class_label_id = label.id
         a.query_id = search_query.id
+        a.dataset_id = dataset_id
         try:
             a.save()  # save to DB
             pusher_client.trigger(presence_channel_name, 'get_articles', 'got article from link')
