@@ -11,7 +11,7 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.linear_model import SGDClassifier
-from sklearn import metrics
+from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split
 
 from scipy.sparse import vstack
@@ -49,7 +49,9 @@ class Learn:
         '''
 
         self.articles = Article.objects.filter(dataset_id=kwargs.pop('dataset_id', 1))
-        self.labels = {label.label: label.id for label in Label.objects.all()}
+        self.label_ids = list(self.articles.values_list('class_label_id', flat=True).distinct())
+        self.label_ids.sort()
+        self.labels = {label.label: label.id for label in Label.objects.filter(id__in=self.label_ids)}
         self.lookup_table = []
         self.X = []
         self.y = []
@@ -101,7 +103,13 @@ class Learn:
         num_queries = kwargs.pop('num_queries', 50)
         train_size = kwargs.pop('train_size', 0.005)
 
-        scores = []
+        results = {}
+        result_keys = ['precision', 'recall', 'fbeta']
+        for label, id in self.labels.items():
+            results[id] = {}
+            for key in result_keys:
+                results[id][key] = []
+            results[id]['label'] = label
 
         X = numpy.array(TfidfVectorizer(stop_words='english').fit_transform(self.X).toarray())
         X_train, X_test, y_train, y_test, lookup_train, lookup_test = train_test_split(X, self.y, self.lookup_table, train_size=train_size, random_state=1, stratify=self.y)
@@ -153,12 +161,10 @@ class Learn:
 
         startTime = time.time()
 
-        # Train classifier on a few instances, and see how accurate it is
+        # Train
         model.fit(*(dataset.format_sklearn()))
-        accuracy = model.score(X_test, y_test)
-        labeled = str(dataset.len_labeled()) + '/' + str(dataset.len_unlabeled())
-        scores.append(accuracy)
-        self.show_score(accuracy, labeled)
+        y_pred = model.predict(X_test)
+        self.get_results(y_test, y_pred, results, result_keys)
 
         # query the oracle / active learning part
         for _ in range(num_queries):
@@ -169,26 +175,30 @@ class Learn:
             else:
                 lbl = labeler.label(dataset.data[query_id][0])
             dataset.update(query_id, lbl)  # update the dataset with newly-labeled example
-            model.fit(*(dataset.format_sklearn()))  # train model with newly-updated Dataset
-            accuracy = model.score(X_test, y_test)
-            labeled = str(dataset.len_labeled()) + '/' + str(dataset.len_unlabeled())
-            scores.append(accuracy)
-            self.show_score(accuracy, labeled)
+            # Train
+            model.fit(*(dataset.format_sklearn()))
+            y_pred = model.predict(X_test)
+            self.get_results(y_test, y_pred, results, result_keys)
 
         elapsedtime = (time.time() - startTime)
+        # Confusion matrix
+        conf_matrix = confusion_matrix(y_test, y_pred, labels=self.label_ids).tolist()
 
-        self.show_accuracy_plot(num_queries, scores, strategy, elapsedtime)
+        self.send_results_to_display(num_queries, strategy, elapsedtime, results, conf_matrix)
 
-    def show_score(self, accuracy, labeled_string):
-        pusher_client = get_pusher_client()
-        channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
+    def get_results(self, y_true, y_pred, results_dict, result_keys):
+        # Obtain measures and append to their arrays
+        p, r, fb, _ = precision_recall_fscore_support(y_true,  y_pred, labels=self.label_ids)
+        for i, array in enumerate([p, r, fb]):
+            for j, label_id in enumerate(self.label_ids):
+                results_dict[label_id][result_keys[i]].append(round(array[j], 5))
 
-        pusher_client.trigger(channel_name, 'model_scored', {'accuracy': accuracy, 'labeled/unlabeled': labeled_string})
-        print("Accuracy: ", accuracy, '\tLabeled: ', labeled_string)
-
-    def show_accuracy_plot(self, num_queries, scores, strategy, time):
+    def send_results_to_display(self, num_queries, strategy, time, results, confusion_matrix):
         pusher_client = get_pusher_client()
         channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
         labels = list(range(1, num_queries + 1))
         labels.insert(0, 'pre')
-        pusher_client.trigger(channel_name, 'show_accuracy_over_queries', {'scores': scores, 'labels': labels, 'strategy': strategy, 'time': time})
+        pusher_data = {
+            'labels': labels, 'strategy': strategy, 'time': time, 'results': results, 'confusion_matrix': confusion_matrix
+        }
+        pusher_client.trigger(channel_name, 'show_accuracy_over_queries', pusher_data)

@@ -23,11 +23,32 @@
     window.append(div)
   }
 
-  function presentLineChart(data, strategy, time){
+  function outputLearningResults(charts, strategy, time, confusion_matrix){
     doc = document.getElementsByTagName('iframe')[0].contentWindow.document
+    // Clear iFrame content
     doc.body.innerHTML = ''
     doc.head.innerHTML = ''
-    var toPrint = `\<div id='results'><h1>Active Learning Results\</h1>\<p>\<b>Strategy\</b>: ${strategy}\</p>\<p>\<b>Runtime\</b>: ${time} seconds\</p>\<script src=\"https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.bundle.min.js\"><\/script>\<style media=\"screen\">#results{margin: 0 auto; min-width: 50vw;} #myChart{max-width: 1000px; max-height: 1000px;} body{font-family: sans-serif; display: flex;}<\/style><canvas id=\"myChart\"><\/canvas><script type=\"text/javascript\">var ctx=document.getElementById(\"myChart\");var myLineChart=new Chart(ctx,{type: \"line\", data: ${JSON.stringify(data)}, options:{scales:{xAxes: [{ticks:{autoSkip:true, maxTicksLimit:20}}]}}});<\/script>\</div>`
+
+    // Style and headers
+    var toPrint = `<div id='results'><h1>Active Learning Results</h1><p><b>Strategy</b>: ${strategy}</p><p><b>Runtime</b>: ${time} seconds</p><script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.bundle.min.js'><\/script><style media='screen'>#results{margin: 0 auto; min-width: 50vw;} canvas{max-width: 1000px; max-height: 1000px;} body{font-family: sans-serif; display: flex;} details, summary{outline: none;}</style><details class='charts'><summary>Charts per class label</summary>`
+
+    // Chart for each class label
+    for(key in charts){
+      toPrint += `<canvas id='results-${key}'></canvas><script type='text/javascript'>var ctx=document.getElementById('results-${key}');var myLineChart=new Chart(ctx,${JSON.stringify(charts[key])});<\/script>`
+    }
+
+    toPrint += `</details><details><summary>Confusion matrix</summary><table border="1" style="border-collapse: separate; border-spacing: 1px;"><tbody>`
+
+    // Print confusion matrix
+    for (index in confusion_matrix) {
+      toPrint += '<tr>'
+      for (j in confusion_matrix[index]){
+        toPrint += `<td>${confusion_matrix[index][j]}</td>`
+      }
+      toPrint += '</tr>'
+    }
+
+    toPrint += '</tbody></table></details></div>'
     writeInIFrame(toPrint)
   }
 
@@ -56,8 +77,28 @@
   channel.bind('show_accuracy_over_queries', function(data){
     strategy = data.strategy
     time = data.time.toFixed(2)
-    data = {xLabels: data.labels, datasets: [{label: "Accuracy", data: data.scores, borderColor: '#E91E63', backgroundColor: 'rgba(233, 30, 99, 0.3)'}]}
-    presentLineChart(data, strategy, time)
+    charts = {}
+    measures = ['precision', 'recall', 'fbeta']
+    colors = ['#E91E63', '#2196F3', '#FFC107']
+
+    // Build charts for each class
+    for(key in data.results){
+      label = data.results[key]['label']
+      charts[label] = {
+        type: 'line',
+        data: {xLabels: data.labels, datasets: []},
+        options:{scales:{xAxes: [{ticks:{autoSkip:true, maxTicksLimit:20}}]}, title: {display: true, text: `Class label: ${label}`}}
+      }
+      measures.forEach(function(measure, index){
+        charts[label].data.datasets.push({
+          label: `${measure}`,
+          data: data.results[key][measure],
+          fill: false,
+          borderColor: colors[index]
+        })
+      })
+    }
+    outputLearningResults(charts, strategy, time, data.confusion_matrix)
   })
 </script>
 

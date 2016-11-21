@@ -66,7 +66,6 @@ def do_learn(dataset_id, auto_label):
     '''
     Begins the active learning process (asynchronously)
     '''
-    print(auto_label is True)
     Learn(dataset_id=dataset_id).learn(auto_label=auto_label)
 
 
