@@ -16,6 +16,8 @@
   window.loadSpinnerScreen = loadSpinnerScreen
 </script>
 <script type="text/javascript">
+  function array_to_coord(array){return array.map(function(value, index){return {x: index, y: value}})}
+
   function printToConsoleWindow(string){
     var window = document.getElementById('console-output')
     var div = document.createElement('div')
@@ -86,17 +88,22 @@
       label = data.results[key]['label']
       charts[label] = {
         type: 'line',
-        data: {xLabels: data.labels, datasets: []},
-        options:{scales:{xAxes: [{ticks:{autoSkip:true, maxTicksLimit:20}}]}, title: {display: true, text: `Class label: ${label}`}}
+        data: {
+          datasets: measures.map(function(measure, index){return {
+            data: array_to_coord(data.results[key][measure]),
+            label: measure,
+            borderColor: colors[index],
+            fill: false}
+          }
+        )},
+        options: {
+          scales: {
+            xAxes: [{type: 'linear', position: 'bottom'}],
+            yAxes: [{display: true, ticks: {min: 0, max: 1}}]
+          },
+          title: {display: true, text: `Class label: ${label}`}
+        }
       }
-      measures.forEach(function(measure, index){
-        charts[label].data.datasets.push({
-          label: `${measure}`,
-          data: data.results[key][measure],
-          fill: false,
-          borderColor: colors[index]
-        })
-      })
     }
     outputLearningResults(charts, strategy, time, data.confusion_matrix)
   })
