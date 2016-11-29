@@ -169,6 +169,7 @@ def load_four_university(yes_label_id, no_label_id, root_dir='webkb'):
     articles = []
 
     for folder, subs, files in os.walk(root_dir):
+        random_title = 0
         for filename in files:
             if not('www' in filename) or ('misc' in folder) or ('other' in folder):
                 continue
@@ -194,10 +195,12 @@ def load_four_university(yes_label_id, no_label_id, root_dir='webkb'):
                 else:
                     label_id = no_label_id
 
-                if soup.title is not None:
-                    title = soup.title.string
+                if soup.title is not None and soup.title.string is not None:
+                    title = soup.title.string + str(random_title)
                 else:
-                    title = 'No Title ' + str(random.randrange(0, 10000))
+                    title = 'No Title ' + str(random_title)
+
+                random_title += 1
 
                 articles.append([{'url': file_location, 'title': title, 'text': text}, {'class_label_id': label_id}])  # , 'query_id': search_query_id}])
 
