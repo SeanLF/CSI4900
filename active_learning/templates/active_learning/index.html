@@ -47,7 +47,15 @@
 
   document.getElementById('start_learning').addEventListener('click', function(e){
     auto_label = e.shiftKey
-    dataset_id = prompt("Input '1' if you want to use the Bing dataset, or '2' if you want to use the four university dataset.", 1)
+    datasets = [
+      {%  for dataset in datasets %}
+        {
+          dataset_id: {{dataset.dataset_id}}, name: '{{dataset.name}}'
+        },
+      {% endfor %}
+    ]
+    text = 'Enter the ID of the dataset to use.\n\n' + datasets.map(function(dataset){return `\t${dataset.dataset_id}\t${dataset.name}\n`}).join('')
+    dataset_id = prompt(text, datasets[0]['dataset_id'])
     if (dataset_id != null){
         this.disabled=true
         parent.loadSpinnerScreen()
