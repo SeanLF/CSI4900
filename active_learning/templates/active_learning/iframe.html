@@ -11,7 +11,7 @@
   }
 
   function loadSpinnerScreen(){
-    writeInIFrame('<style media="screen">/* loading CSS from http://tobiasahlin.com/spinkit/ */body{ background-color: #2196F3; display: flex; flex-flow: row wrap; justify-content: center; align-items: center;}.spinner { width: 5vw; height: 5vw; position: relative; margin: 100px auto;}.double-bounce1, .double-bounce2 { width: 100%; height: 100%; border-radius: 50%; background-color: #fff; opacity: 0.6; position: absolute; top: 0; left: 0; -webkit-animation: sk-bounce 2.0s infinite ease-in-out; animation: sk-bounce 2.0s infinite ease-in-out;}.double-bounce2 { -webkit-animation-delay: -1.0s; animation-delay: -1.0s;}@-webkit-keyframes sk-bounce { 0%, 100% { -webkit-transform: scale(0.0) } 50% { -webkit-transform: scale(1.0) }}@keyframes sk-bounce { 0%, 100% { transform: scale(0.0); -webkit-transform: scale(0.0); } 50% { transform: scale(1.0); -webkit-transform: scale(1.0); }}</style><div class="spinner"> <div class="double-bounce1"></div> <div class="double-bounce2"></div></div>')
+    writeInIFrame('<style media="screen">/* loading CSS from http://tobiasahlin.com/spinkit/ */body{ background-color: #FFF; display: flex; flex-flow: row wrap; justify-content: center; align-items: center;}.spinner { width: 5vw; height: 5vw; position: relative; margin: 100px auto;}.double-bounce1, .double-bounce2 { width: 100%; height: 100%; border-radius: 50%; background-color: #2196F3; opacity: 0.6; position: absolute; top: 0; left: 0; -webkit-animation: sk-bounce 2.0s infinite ease-in-out; animation: sk-bounce 2.0s infinite ease-in-out;}.double-bounce2 { -webkit-animation-delay: -1.0s; animation-delay: -1.0s;}@-webkit-keyframes sk-bounce { 0%, 100% { -webkit-transform: scale(0.0) } 50% { -webkit-transform: scale(1.0) }}@keyframes sk-bounce { 0%, 100% { transform: scale(0.0); -webkit-transform: scale(0.0); } 50% { transform: scale(1.0); -webkit-transform: scale(1.0); }}</style><div class="spinner"> <div class="double-bounce1"></div> <div class="double-bounce2"></div></div>')
   }
   window.loadSpinnerScreen = loadSpinnerScreen
 </script>
@@ -43,7 +43,7 @@
        toPrint += `</details><details><summary>Confusion matrix</summary><table border="1" style="border-collapse: separate; border-spacing: 1px;margin:1rem;"><tbody>`
        toPrint += '<th scope="col"></th>'
 
-       for(lbl in labels){
+       for(lbl of labels){
          toPrint += `<th scope="col">Predicted: ${lbl}</th>`
        }
 
@@ -55,7 +55,9 @@
          }
          toPrint += '</tr>'
        }
-       toPrint += '</tbody></table></details></div>'
+       toPrint += '</tbody></table></details>'
+       toPrint += '<br><button id="continue_learning">Continue Learning</button></div>'
+       toPrint += '<script type="text/javascript">document.getElementById("continue_learning").addEventListener("click", function(e){ auto_label = e.shiftKey; doc = document.getElementsByTagName("iframe")[0].contentWindow.document; doc.body.innerHTML = ""; doc.head.innerHTML = ""; parent.loadSpinnerScreen(); if(parent.channel != undefined) { sent = parent.channel.trigger("client-learn", {auto_label: auto_label}); if (sent){     } else { alert("cant do that right now"); }}});<\/script>'
        writeInIFrame(toPrint)
      }
 

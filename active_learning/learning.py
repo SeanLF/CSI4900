@@ -20,6 +20,8 @@ from numpy import argmax, argmin
 from active_learning.utils import format_pusher_channel_name, get_pusher_client
 from os import environ
 import time
+from time import sleep
+import pusherclient
 
 
 class Learn:
@@ -50,6 +52,12 @@ class Learn:
             self.lookup_table.append(article.id)
             self.X.append(article.text)
             self.y.append(article.class_label_id)
+        self.channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
+        global pusher
+        # listen for response from client, then disconnect
+        pusher = pusherclient.Pusher(environ['PUSHER_KEY'], True, environ['PUSHER_SECRET'], {'user_id': 'active_learning_learner'})
+        pusher.connection.bind('pusher:connection_established', self.connect_handler)
+        pusher.connect()
 
     def classify_svm(self, X, y):
         '''
@@ -84,10 +92,10 @@ class Learn:
         train_size : (0 <= number <= 1) fraction of the corpus to use in the labeled set
         '''
 
-        auto_label = kwargs.pop('auto_label', False)
+        self.auto_label = kwargs.pop('auto_label', False)
         active_learning_strategy = kwargs.pop('active_learning_strategy', 1)
-        num_queries = kwargs.pop('num_queries', 50)
-        train_size = kwargs.pop('train_size', 0.005)
+        num_queries = kwargs.pop('num_queries', 10)
+        train_size = kwargs.pop('train_size', 0.007)
         self_train = kwargs.pop('self_train', True)
 
         metrics = ['precision', 'recall', 'fbeta']
@@ -98,7 +106,7 @@ class Learn:
 
         train_test_dataset, ground_truth_dataset, self.lookup_table = self.setup_datasets(X, self.y, self.lookup_table, train_size)
 
-        if auto_label is False:
+        if self.auto_label is False:
             labeler = OurLabeler(labels=self.labels)
         query_strategy, strategy = self.get_active_learning_strategy(active_learning_strategy, train_test_dataset)
         model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')
@@ -108,27 +116,46 @@ class Learn:
         self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
 
         elapsed_time = 0  # time duration spent taken querying and retraining
+        self.continue_learning = True
+        # While the user wants to keep labeling
+        while(self.continue_learning):
+            # query the oracle / active learning part
+            for query_number in range(1, num_queries + 1):
+                start_time = time.time()
+                query_id = query_strategy.make_query()
+                label = ground_truth_dataset.data[query_id][1] if self.auto_label else labeler.label(self.lookup_table[query_id])
 
-        # query the oracle / active learning part
-        for query_number in range(1, num_queries + 1):
-            start_time = time.time()
-            query_id = query_strategy.make_query()
-            label = ground_truth_dataset.data[query_id][1] if auto_label else labeler.label(self.lookup_table[query_id])
+                # update the dataset with newly-labeled example then re-train
+                train_test_dataset.update(query_id, label)
+                model.fit(*(train_test_dataset.format_sklearn()))
+                elapsed_time += time.time() - start_time
 
-            # update the dataset with newly-labeled example then re-train
-            train_test_dataset.update(query_id, label)
-            model.fit(*(train_test_dataset.format_sklearn()))
-            elapsed_time += time.time() - start_time
+                # label one most confident predictions for each label
+                if self_train:
+                    self.self_train(train_test_dataset, model)
 
-            # label one most confident predictions for each label
-            if self_train:
-                self.self_train(train_test_dataset, model)
+                # Test for intermediate and final metrics
+                X_test, y_test, y_pred = self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
+                print(elapsed_time)
 
-            # Test for intermediate and final metrics
-            X_test, y_test, y_pred = self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
+            conf_matrix = confusion_matrix(y_test, y_pred, labels=self.label_ids).tolist()
+            self.send_results_to_display(num_queries, strategy, elapsed_time, results, conf_matrix, metrics)
 
-        conf_matrix = confusion_matrix(y_test, y_pred, labels=self.label_ids).tolist()
-        self.send_results_to_display(num_queries, strategy, elapsed_time, results, conf_matrix, metrics)
+            self.continue_learning = False
+            while(not self.continue_learning):
+                sleep(1)
+
+    def connect_handler(self, data):
+        '''
+        We can't subscribe until we've connected, so we use a callback handler to subscribe when able
+        '''
+        channel = pusher.subscribe(self.channel_name)
+        channel.bind('client-learn', self.callback)
+
+    def callback(self, data):
+        import json
+        self.continue_learning = True
+        self.auto_label = json.loads(data)['auto_label']
 
     def setup_results(self, labels, metrics):
         results = {}
