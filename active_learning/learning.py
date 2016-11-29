@@ -103,9 +103,7 @@ class Learn:
 
         # Train on the labeled data and get initial accuracy
         model.fit(*(train_test_dataset.format_sklearn()))
-        X_test, y_test = self.get_test_data(train_test_dataset, ground_truth_dataset)
-        y_pred = model.predict(X_test)
-        self.get_results(y_test, y_pred, results, metrics)
+        self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
 
         elapsed_time = 0  # time duration spent taken querying and retraining
 
@@ -121,9 +119,7 @@ class Learn:
             elapsed_time += time.time() - start_time
 
             # Test for intermediate and final metrics
-            X_test, y_test = self.get_test_data(train_test_dataset, ground_truth_dataset)
-            y_pred = model.predict(X_test)
-            self.get_results(y_test, y_pred, results, metrics)
+            X_test, y_test, y_pred = self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
 
         conf_matrix = confusion_matrix(y_test, y_pred, labels=self.label_ids).tolist()
         self.send_results_to_display(num_queries, strategy, elapsed_time, results, conf_matrix, metrics)
@@ -202,6 +198,12 @@ class Learn:
         unlabeled_entry_ids, X_test = zip(*entries)
         y_test = [ground_truth_dataset.data[entry_id][1] for entry_id in unlabeled_entry_ids]
         return X_test, y_test
+
+    def test_and_get_results(self, model, train_test_dataset, ground_truth_dataset, results, metrics):
+        X_test, y_test = self.get_test_data(train_test_dataset, ground_truth_dataset)
+        y_pred = model.predict(X_test)
+        self.get_results(y_test, y_pred, results, metrics)
+        return X_test, y_test, y_pred
 
     def get_results(self, y_true, y_pred, results_dict, metrics):
         # Obtain measures and append to their arrays
