@@ -16,7 +16,7 @@
   window.loadSpinnerScreen = loadSpinnerScreen
 </script>
 <script type="text/javascript">
-  function array_to_coord(array){return array.map(function(value, index){return {x: index, y: value}})}
+  function array_to_coord(array){return array.map(function(value, index){return {x: index, y: value*100}})}
 
   function printToConsoleWindow(string){
     var window = document.getElementById('console-output')
@@ -32,7 +32,7 @@
     doc.head.innerHTML = ''
 
     // Style and headers
-    var toPrint = `<div id='results'><h1>Active Learning Results</h1><p><b>Strategy</b>: ${strategy}</p><p><b>Runtime</b>: ${time} seconds</p><script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.bundle.min.js'><\/script><style media='screen'>#results{margin: 0 auto; min-width: 50vw;} canvas{max-width: 1000px; max-height: 1000px;margin:auto;margin-bottom:2rem;} body{font-family: sans-serif; display: flex;} details, summary{outline: none;}details {background: #fff;border-radius: 2px;display: inline-block;margin: 1rem 0rem;position: relative;width: 100%;box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);margin-bottom: 1rem;}summary{padding: 1rem;background-color: #3F51B5;color: white;}</style><details class='charts'><summary>Charts per class label</summary>`
+    var toPrint = `<div id='results'><h1>Active Learning Results</h1><p><b>Strategy</b>: ${strategy}</p><p><b>Runtime</b>: ${time} seconds</p><script src='https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.bundle.min.js'><\/script><style media='screen'>#results{margin: 0 auto; min-width: 50vw;} canvas{max-width: 1000px; max-height: 1000px;margin:auto;margin-bottom:2rem;} body{font-family: sans-serif; display: flex;} details, summary{outline: none;}details {background: #fff;border-radius: 2px;display: inline-block;margin: 1rem 0rem;position: relative;width: 100%;box-shadow: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);margin-bottom: 1rem;}summary{padding: 1rem;background-color: #3F51B5;color: white;cursor:pointer;}</style><details class='charts'><summary>Charts per class label</summary>`
 
     // Chart for each class label
     for(key in charts){
@@ -98,8 +98,8 @@
         )},
         options: {
           scales: {
-            xAxes: [{type: 'linear', position: 'bottom'}],
-            yAxes: [{display: true, ticks: {min: 0, max: 1}}]
+            xAxes: [{type: 'linear', position: 'bottom', scaleLabel: {display: true, labelString: 'Queries'}}],
+            yAxes: [{display: true, ticks: {min: 0, max: 100}, scaleLabel: {display: true, labelString: '%'}}]
           },
           title: {display: true, text: `Class label: ${label}`}
         }
