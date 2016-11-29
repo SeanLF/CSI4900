@@ -15,6 +15,7 @@ from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_sp
 
 from scipy.sparse import vstack
 import numpy
+from numpy import argmax, argmin
 
 from active_learning.utils import format_pusher_channel_name, get_pusher_client
 from os import environ
@@ -87,6 +88,7 @@ class Learn:
         active_learning_strategy = kwargs.pop('active_learning_strategy', 1)
         num_queries = kwargs.pop('num_queries', 50)
         train_size = kwargs.pop('train_size', 0.005)
+        self_train = kwargs.pop('self_train', True)
 
         metrics = ['precision', 'recall', 'fbeta']
         results = self.setup_results(self.labels, metrics)
@@ -103,9 +105,7 @@ class Learn:
 
         # Train on the labeled data and get initial accuracy
         model.fit(*(train_test_dataset.format_sklearn()))
-        X_test, y_test = self.get_test_data(train_test_dataset, ground_truth_dataset)
-        y_pred = model.predict(X_test)
-        self.get_results(y_test, y_pred, results, metrics)
+        self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
 
         elapsed_time = 0  # time duration spent taken querying and retraining
 
@@ -120,10 +120,12 @@ class Learn:
             model.fit(*(train_test_dataset.format_sklearn()))
             elapsed_time += time.time() - start_time
 
+            # label one most confident predictions for each label
+            if self_train:
+                self.self_train(train_test_dataset, model)
+
             # Test for intermediate and final metrics
-            X_test, y_test = self.get_test_data(train_test_dataset, ground_truth_dataset)
-            y_pred = model.predict(X_test)
-            self.get_results(y_test, y_pred, results, metrics)
+            X_test, y_test, y_pred = self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
 
         conf_matrix = confusion_matrix(y_test, y_pred, labels=self.label_ids).tolist()
         self.send_results_to_display(num_queries, strategy, elapsed_time, results, conf_matrix, metrics)
@@ -202,6 +204,23 @@ class Learn:
         unlabeled_entry_ids, X_test = zip(*entries)
         y_test = [ground_truth_dataset.data[entry_id][1] for entry_id in unlabeled_entry_ids]
         return X_test, y_test
+
+    def self_train(self, train_test_dataset, model):
+        entries = train_test_dataset.get_unlabeled_entries()
+        unlabeled_entry_ids, X_test = zip(*entries)
+        confidence_scores = model.decision_function(X_test)
+        entry_id = argmin(confidence_scores)
+        if confidence_scores[entry_id] < 0:
+            train_test_dataset.update(entry_id, self.label_ids[0])
+        entry_id = argmax(confidence_scores)
+        if confidence_scores[entry_id] > 0:
+            train_test_dataset.update(entry_id, self.label_ids[1])
+
+    def test_and_get_results(self, model, train_test_dataset, ground_truth_dataset, results, metrics):
+        X_test, y_test = self.get_test_data(train_test_dataset, ground_truth_dataset)
+        y_pred = model.predict(X_test)
+        self.get_results(y_test, y_pred, results, metrics)
+        return X_test, y_test, y_pred
 
     def get_results(self, y_true, y_pred, results_dict, metrics):
         # Obtain measures and append to their arrays
