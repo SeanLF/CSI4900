@@ -99,7 +99,7 @@ class Learn:
         if auto_label is False:
             labeler = OurLabeler(labels=self.labels)
         query_strategy, strategy = self.get_active_learning_strategy(active_learning_strategy, train_test_dataset)
-        model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-2, n_iter=5, random_state=None, learning_rate='optimal', class_weight='balanced')
+        model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')
 
         # Train on the labeled data and get initial accuracy
         model.fit(*(train_test_dataset.format_sklearn()))
