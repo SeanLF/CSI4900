@@ -26,6 +26,7 @@ PUSHER_KEY=_________________
 PUSHER_SECRET=_________________
 BING_NEWS_SEARCH_API_KEY=_________________
 PRESENCE_CHANNEL_NAME=presence-channel
+HOST='http://localhost:8000'
 ```
 Replace the underscores with your environment secrets. Contact a team member if you don't have access to Pusher or the Bing News API.
 
