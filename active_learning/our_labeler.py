@@ -1,7 +1,9 @@
 from libact.base.interfaces import Labeler
+from django.urls import reverse
 import pusherclient
 from active_learning.utils import format_pusher_channel_name, get_pusher_client
 from os import environ
+from time import sleep
 
 
 class OurLabeler(Labeler):
@@ -20,8 +22,7 @@ class OurLabeler(Labeler):
 
         Parameters
         ----------
-        labels : list
-            A list of labels
+        labels : list of labels
         '''
 
         self.labels = kwargs.pop('labels', None)
@@ -35,21 +36,16 @@ class OurLabeler(Labeler):
         pusher.connection.bind('pusher:connection_established', self.connect_handler)
         pusher.connect()
 
-    def label(self, feature):
+    def label(self, article_id):
         '''
         Return the label produced by the oracle
-
-        Parameters
-        ----------
-        feature : dictionary
-            A dictionary where the keys are the id and the url are the values
         '''
 
-        self.pusher_client.trigger(self.channel_name, 'request_label', feature)
+        pusher_data = {'id': article_id, 'url': environ['HOST'] + reverse('active_learning:detail', args=[article_id])}
+        self.pusher_client.trigger(self.channel_name, 'request_label', pusher_data)
 
         # wait for the oracle to provide a label
         while (self.labels is not None) and (self.lbl not in self.labels.keys()):
-            from time import sleep
             sleep(1)
 
         label = self.labels[self.lbl]
