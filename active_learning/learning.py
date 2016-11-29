@@ -136,7 +136,6 @@ class Learn:
 
                 # Test for intermediate and final metrics
                 X_test, y_test, y_pred = self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
-                print(elapsed_time)
 
             conf_matrix = confusion_matrix(y_test, y_pred, labels=self.label_ids).tolist()
             self.send_results_to_display(num_queries, strategy, elapsed_time, results, conf_matrix, metrics)
