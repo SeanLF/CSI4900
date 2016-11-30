@@ -12,6 +12,7 @@ from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split
+from active_learning.libact_models import *
 
 from scipy.sparse import vstack
 import numpy
@@ -120,11 +121,13 @@ class Learn:
             model.fit(*(train_test_dataset.format_sklearn()))
             elapsed_time += time.time() - start_time
 
-            # label one most confident predictions for each label
-            if self_train:
-                self.self_train(train_test_dataset, model)
-
             # Test for intermediate and final metrics
+            X_test, y_test, y_pred = self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
+
+        if self_train:
+            instances_to_label_per_loop = 20
+            test_size = 0.25
+            self.self_train(train_test_dataset, model, instances_to_label_per_loop, test_size)
             X_test, y_test, y_pred = self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
 
         conf_matrix = confusion_matrix(y_test, y_pred, labels=self.label_ids).tolist()
@@ -170,10 +173,10 @@ class Learn:
             query_strategy = ActiveLearningByLearning(
                 dataset,
                 query_strategies=[
-                    UncertaintySampling(dataset, model=LogisticRegression(C=1.)),
-                    UncertaintySampling(dataset, model=LogisticRegression(C=.01))
+                    UncertaintySampling(dataset, model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')),
+                    UncertaintySampling(dataset, model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-3, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')),
                 ],
-                model=LogisticRegression(),
+                model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced'),
                 T=1000)
         elif active_learning_strategy == 2:
             strategy = 'Hint SVM'
@@ -189,7 +192,7 @@ class Learn:
             query_strategy = RandomSampling(dataset)
         elif active_learning_strategy == 6:
             strategy = 'Uncertainty sampling least confidence'
-            query_strategy = UncertaintySampling(dataset, model=LogisticRegression(C=0.1))
+            query_strategy = UncertaintySampling(dataset, model=SVM(kernel='linear', decision_function_shape='ovr'))
         elif active_learning_strategy == 7:
             strategy = 'Uncertainty sampling smallest margin'
             query_strategy = UncertaintySampling(dataset, method='sm', model=LogisticRegression(C=0.1))
@@ -205,16 +208,22 @@ class Learn:
         y_test = [ground_truth_dataset.data[entry_id][1] for entry_id in unlabeled_entry_ids]
         return X_test, y_test
 
-    def self_train(self, train_test_dataset, model):
-        entries = train_test_dataset.get_unlabeled_entries()
-        unlabeled_entry_ids, X_test = zip(*entries)
-        confidence_scores = model.decision_function(X_test)
-        entry_id = argmin(confidence_scores)
-        if confidence_scores[entry_id] < 0:
-            train_test_dataset.update(entry_id, self.label_ids[0])
-        entry_id = argmax(confidence_scores)
-        if confidence_scores[entry_id] > 0:
-            train_test_dataset.update(entry_id, self.label_ids[1])
+    def self_train(self, train_test_dataset, model, instances_to_label_per_loop, test_size):
+        num_instances = len(train_test_dataset.data)
+        num_loops = (train_test_dataset.len_unlabeled() - (test_size * num_instances))/instances_to_label_per_loop
+
+        for self_train_loop_index in range(int(num_loops)):
+            entries = train_test_dataset.get_unlabeled_entries()
+            unlabeled_entry_ids, X_test = zip(*entries)
+            confidence_scores = model.decision_function(X_test)
+            entry_id = argmin(confidence_scores)
+            if confidence_scores[entry_id] < 0:
+                train_test_dataset.update(entry_id, self.label_ids[0])
+            entry_id = argmax(confidence_scores)
+            if confidence_scores[entry_id] > 0:
+                train_test_dataset.update(entry_id, self.label_ids[1])
+            model.fit(*(train_test_dataset.format_sklearn()))
+            print(self_train_loop_index, '/', (int(num_loops)-1))
 
     def test_and_get_results(self, model, train_test_dataset, ground_truth_dataset, results, metrics):
         X_test, y_test = self.get_test_data(train_test_dataset, ground_truth_dataset)

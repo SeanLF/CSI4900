@@ -66,7 +66,7 @@ def do_learn(dataset_id, auto_label):
     '''
     Begins the active learning process (asynchronously)
     '''
-    Learn(dataset_id=dataset_id).learn(auto_label=auto_label)
+    Learn(dataset_id=dataset_id).learn(auto_label=auto_label, self_train=False, active_learning_strategy=1, num_queries=20, train_size=0.01)
 
 
 def get_articles(request):
