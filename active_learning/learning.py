@@ -90,6 +90,7 @@ class Learn:
         num_queries = kwargs.pop('num_queries', 50)
         train_size = kwargs.pop('train_size', 0.005)
         self_train = kwargs.pop('self_train', True)
+        verbose = kwargs.pop('verbose', False)
 
         metrics = ['precision', 'recall', 'fbeta']
         results = self.setup_results(self.labels, metrics)
@@ -97,16 +98,17 @@ class Learn:
         # Extract features from documents in the form of TF-IDF
         X = numpy.array(TfidfVectorizer(stop_words='english').fit_transform(self.X).toarray())
 
-        train_test_dataset, ground_truth_dataset, self.lookup_table = self.setup_datasets(X, self.y, self.lookup_table, train_size)
+        train_dataset, train_dataset_labeled, test_dataset, lookup_train, lookup_test, self.lookup_table = \
+            self.setup_datasets(X, self.y, self.lookup_table, train_size)
 
         if auto_label is False:
             labeler = OurLabeler(labels=self.labels)
-        query_strategy, strategy = self.get_active_learning_strategy(active_learning_strategy, train_test_dataset)
+        query_strategy, strategy = self.get_active_learning_strategy(active_learning_strategy, train_dataset)
         model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')
 
         # Train on the labeled data and get initial accuracy
-        model.fit(*(train_test_dataset.format_sklearn()))
-        self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
+        model.fit(*(train_dataset.format_sklearn()))
+        self.test_and_get_results(model, test_dataset, results, metrics)
 
         elapsed_time = 0  # time duration spent taken querying and retraining
 
@@ -114,24 +116,28 @@ class Learn:
         for query_number in range(1, num_queries + 1):
             start_time = time.time()
             query_id = query_strategy.make_query()
-            label = ground_truth_dataset.data[query_id][1] if auto_label else labeler.label(self.lookup_table[query_id])
+            label = train_dataset_labeled.data[query_id][1] if auto_label else labeler.label(lookup_train[query_id])
 
             # update the dataset with newly-labeled example then re-train
-            train_test_dataset.update(query_id, label)
-            model.fit(*(train_test_dataset.format_sklearn()))
+            train_dataset.update(query_id, label)
+            model.fit(*(train_dataset.format_sklearn()))
             elapsed_time += time.time() - start_time
 
             # Test for intermediate and final metrics
-            X_test, y_test, y_pred = self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
+            X_test, y_test, y_pred = self.test_and_get_results(model, test_dataset, results, metrics)
+            if verbose:
+                print("Accuracy: ", model.score(X_test, y_test))
 
         if self_train:
             instances_to_label_per_loop = 20
             test_size = 0.25
-            self.self_train(train_test_dataset, model, instances_to_label_per_loop, test_size)
-            X_test, y_test, y_pred = self.test_and_get_results(model, train_test_dataset, ground_truth_dataset, results, metrics)
+            self.self_train(train_dataset, model, instances_to_label_per_loop, test_size)
+            X_test, y_test, y_pred = self.test_and_get_results(model, test_dataset, results, metrics)
 
         conf_matrix = confusion_matrix(y_test, y_pred, labels=self.label_ids).tolist()
         self.send_results_to_display(num_queries, strategy, elapsed_time, results, conf_matrix, metrics)
+        if verbose:
+            print("Fin")
 
     def setup_results(self, labels, metrics):
         results = {}
@@ -142,16 +148,23 @@ class Learn:
             results[label_id]['label'] = label
         return results
 
+
     def setup_datasets(self, X, y, lookup_table, train_size):
-        X_train, X_test, y_train, y_test, lookup_train, lookup_test = train_test_split(X, y, lookup_table, train_size=train_size, random_state=None, stratify=y)
+        X_train, X_test, y_train, y_test, lookup_train, lookup_test \
+            = train_test_split(X, y, lookup_table, train_size=0.7, random_state=None, stratify=y)
+        X_train_labeled, X_train_unlabeled, y_train_labeled, y_train_unlabeled, lookup_train_labeled, lookup_train_unlabeled \
+            = train_test_split(X_train, y_train, lookup_train, train_size=train_size, random_state=None, stratify=y_train)
 
-        lookup_table = lookup_train + lookup_test
-        X = numpy.array(vstack([X_train, X_test]).toarray())
-        y = y_train + y_test
 
-        train_test_dataset = Dataset(X, y_train + [None] * len(y_test))
-        ground_truth_dataset = Dataset(X, y)
-        return train_test_dataset, ground_truth_dataset, lookup_table
+        lookup_table = lookup_train_labeled + lookup_train_unlabeled + lookup_test
+        lookup_train = lookup_train_labeled + lookup_train_unlabeled
+        X_train = numpy.array(vstack([X_train_labeled, X_train_unlabeled]).toarray())
+        y_train = y_train_labeled + y_train_unlabeled
+
+        train_dataset = Dataset(X_train, y_train_labeled + [None] * len(y_train_unlabeled))
+        train_dataset_labeled = Dataset(X_train, y_train)
+        test_dataset = Dataset(X_test, y_test)
+        return train_dataset, train_dataset_labeled, test_dataset, lookup_train, lookup_test, lookup_table
 
     def get_active_learning_strategy(self, active_learning_strategy, dataset):
         '''
@@ -195,18 +208,17 @@ class Learn:
             query_strategy = UncertaintySampling(dataset, model=SVM(kernel='linear', decision_function_shape='ovr'))
         elif active_learning_strategy == 7:
             strategy = 'Uncertainty sampling smallest margin'
-            query_strategy = UncertaintySampling(dataset, method='sm', model=LogisticRegression(C=0.1))
+            query_strategy = UncertaintySampling(dataset, method='sm', model=SVM(kernel='linear', decision_function_shape='ovr'))
         else:
             strategy = 'Variance reduction'
             query_strategy = VarianceReduction(dataset)
 
         return query_strategy, strategy
 
-    def get_test_data(self, train_test_dataset, ground_truth_dataset):
-        entries = train_test_dataset.get_unlabeled_entries()
-        unlabeled_entry_ids, X_test = zip(*entries)
-        y_test = [ground_truth_dataset.data[entry_id][1] for entry_id in unlabeled_entry_ids]
-        return X_test, y_test
+    def get_data(self, dataset):
+        entries = dataset.get_entries()
+        X, y = zip(*entries)
+        return X, y
 
     def self_train(self, train_test_dataset, model, instances_to_label_per_loop, test_size):
         num_instances = len(train_test_dataset.data)
@@ -225,8 +237,8 @@ class Learn:
             model.fit(*(train_test_dataset.format_sklearn()))
             print(self_train_loop_index, '/', (int(num_loops)-1))
 
-    def test_and_get_results(self, model, train_test_dataset, ground_truth_dataset, results, metrics):
-        X_test, y_test = self.get_test_data(train_test_dataset, ground_truth_dataset)
+    def test_and_get_results(self, model, test_dataset, results, metrics):
+        X_test, y_test = self.get_data(test_dataset)
         y_pred = model.predict(X_test)
         self.get_results(y_test, y_pred, results, metrics)
         return X_test, y_test, y_pred
