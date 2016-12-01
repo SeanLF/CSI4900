@@ -17,12 +17,15 @@ Due Monday, December 19th at 16h00
 
 ## Methodology
 > What you did
+image of system (framework, pseudocode, description)
 
 ## Experimental Design
 > How did you evaluate
+data used, system used
 
 ## Experimental Results
 > What did you find
+evaluations, lessons learned
 
 ## Conclusion
 > Conclusions
