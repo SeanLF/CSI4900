@@ -52,6 +52,7 @@ def train_active_learning(**kwargs):
 
 
 def cross_validate_active_learning(num_folds, X, y, labeled_instances, num_queries):
+    active_learning_strategy = kwargs.pop('active_learning_strategy', 1)
     results = []
     # make K folds
     skf = StratifiedKFold(n_splits=num_folds)
@@ -70,7 +71,7 @@ def cross_validate_active_learning(num_folds, X, y, labeled_instances, num_queri
         training_dataset = Dataset(X_train, y_train_with_missing)
         oracle_training_dataset = Dataset(X_train, y_train + y_train_oracle.tolist())
         # do active_learning and get trained model
-        trained_model, _ = train_active_learning(num_queries=num_queries, training_dataset=training_dataset, labeler=AutoLabeler(oracle_training_dataset))
+        trained_model, _ = train_active_learning(num_queries=num_queries, training_dataset=training_dataset, labeler=AutoLabeler(oracle_training_dataset), active_learning_strategy=active_learning_strategy)
         # test model
         predicted = trained_model.predict(X_test)
         results.append({'y_true': y_test, 'y_pred': predicted})
@@ -85,6 +86,7 @@ def learn(dataset_id, **kwargs):
     num_queries = kwargs.pop('num_queries', 20)
     num_folds = kwargs.pop('num_folds', 10)
     labeled_instances = kwargs.pop('labeled_instances', 5)
+    active_learning_strategy = kwargs.pop('active_learning_strategy', 1)
     # Build dataset
     articles = Article.objects.filter(dataset_id=dataset_id)
     label_ids = list(articles.values_list('class_label_id', flat=True).distinct())
@@ -98,7 +100,7 @@ def learn(dataset_id, **kwargs):
         y.append(article.class_label_id)
     X = preprocess(X_strings)
     y = numpy.array(y)
-    return cross_validate_active_learning(num_folds, X, y, labeled_instances, num_queries)
+    return cross_validate_active_learning(num_folds, X, y, labeled_instances, num_queries, active_learning_strategy=active_learning_strategy)
 
 
 def get_active_learning_strategy(active_learning_strategy, dataset):
@@ -106,13 +108,14 @@ def get_active_learning_strategy(active_learning_strategy, dataset):
     Active learning strategies are:
 
     1. Active learning by learning
-    2. Hint SVM
+    2. Active learning by learning (with QBC)
     3. Query by committee
-    4. QUIRE
+    4. Uncertainty sampling
     5. Random sampling
-    6. Uncertainty sampling
+    6. QUIRE
     7. Uncertainty sampling (smallest margin)
-    8. Variance reduction
+    8. Hint SVM
+    9. Variance reduction
     '''
 
     # choose an active learning strategy
@@ -127,23 +130,34 @@ def get_active_learning_strategy(active_learning_strategy, dataset):
             model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced'),
             T=1000)
     elif active_learning_strategy == 2:
-        strategy = 'Hint SVM'
-        query_strategy = HintSVM(dataset, Cl=0.01, p=0.8)
+        strategy = 'Active learning by learning (with QBC)'
+        query_strategy = ActiveLearningByLearning(
+            dataset,
+            query_strategies=[
+                UncertaintySampling(dataset, model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')),
+                UncertaintySampling(dataset, model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-3, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')),
+                QueryByCommittee(dataset, models=[SGD_Model(alpha=1e-2, n_iter=1000), SGD_Model(alpha=1e-3, n_iter=1000)]),
+            ],
+            model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced'),
+            T=1000)
     elif active_learning_strategy == 3:
         strategy = 'Query by committee'
-        query_strategy = QueryByCommittee(dataset, models=[LogisticRegression(C=1.0), LogisticRegression(C=0.1)])
+        query_strategy = QueryByCommittee(dataset, models=[SGD_Model(alpha=1e-2, n_iter=1000), SGD_Model(alpha=1e-3, n_iter=1000)])
     elif active_learning_strategy == 4:
-        strategy = 'QUIRE'
-        query_strategy = QUIRE(dataset)
+        strategy = 'Uncertainty sampling least confidence'
+        query_strategy = UncertaintySampling(dataset, model=SVM(kernel='linear', decision_function_shape='ovr'))
     elif active_learning_strategy == 5:
         strategy = 'Random sampling'
         query_strategy = RandomSampling(dataset)
     elif active_learning_strategy == 6:
-        strategy = 'Uncertainty sampling least confidence'
-        query_strategy = UncertaintySampling(dataset, model=SVM(kernel='linear', decision_function_shape='ovr'))
+        strategy = 'QUIRE'
+        query_strategy = QUIRE(dataset)
     elif active_learning_strategy == 7:
         strategy = 'Uncertainty sampling smallest margin'
         query_strategy = UncertaintySampling(dataset, method='sm', model=SVM(kernel='linear', decision_function_shape='ovr'))
+    elif active_learning_strategy == 8:
+        strategy = 'Hint SVM'
+        query_strategy = HintSVM(dataset, Cl=0.01, p=0.8)
     else:
         strategy = 'Variance reduction'
         query_strategy = VarianceReduction(dataset)
