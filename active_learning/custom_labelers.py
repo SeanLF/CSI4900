@@ -6,7 +6,7 @@ from os import environ
 from time import sleep
 
 
-class OurLabeler(Labeler):
+class WebLabeler(Labeler):
     '''
     Handles interaction between oracle and the process of labeling an article
     '''
@@ -26,6 +26,7 @@ class OurLabeler(Labeler):
         '''
 
         self.labels = kwargs.pop('labels', None)
+        self.lookup_table = kwargs.pop('lookup_table', [])
         self.pusher_client = get_pusher_client()
         self.channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
         self.lbl = None
@@ -36,11 +37,12 @@ class OurLabeler(Labeler):
         pusher.connection.bind('pusher:connection_established', self.connect_handler)
         pusher.connect()
 
-    def label(self, article_id):
+    def label(self, query_id):
         '''
         Return the label produced by the oracle
         '''
 
+        article_id = self.lookup_table[query_id]
         pusher_data = {'id': article_id, 'url': environ['HOST'] + reverse('active_learning:detail', args=[article_id])}
         self.pusher_client.trigger(self.channel_name, 'request_label', pusher_data)
 
@@ -62,3 +64,18 @@ class OurLabeler(Labeler):
     def callback(self, data):
         import json
         self.lbl = json.loads(data)['label']
+
+
+class AutoLabeler(Labeler):
+    """
+    Uses the ground truth to label instances
+    """
+
+    def __init__(self, oracle_dataset):
+        self.oracle_dataset = oracle_dataset
+
+    def label(self, query_id):
+        """
+        Return the label from the oracle dataset (automatic label)
+        """
+        return self.oracle_dataset.data[query_id][1]

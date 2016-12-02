@@ -1,20 +1,21 @@
 from libact.base.dataset import Dataset
 from libact.query_strategies import *
 from libact.models import *
-from active_learning.models import Article, Label
-from libact.labelers.ideal_labeler import IdealLabeler
-from active_learning.our_labeler import OurLabeler
 
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer, TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
+from active_learning.custom_labelers import WebLabeler, AutoLabeler
+from active_learning.libact_models import *
+from active_learning.models import Article, Label
+from active_learning.learn import get_active_learning_strategy, train_active_learning
+
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import SelectKBest, chi2
 from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 from sklearn.model_selection import GridSearchCV, cross_val_score, train_test_split
-from active_learning.libact_models import *
 
 from scipy.sparse import vstack
+
 import numpy
 from numpy import argmax, argmin
 
@@ -98,35 +99,20 @@ class Learn:
         # Extract features from documents in the form of TF-IDF
         X = numpy.array(TfidfVectorizer(stop_words='english').fit_transform(self.X).toarray())
 
-        train_dataset, train_dataset_labeled, test_dataset, lookup_train, lookup_test, self.lookup_table = \
-            self.setup_datasets(X, self.y, self.lookup_table, train_size)
+        train_dataset, train_dataset_labeled, test_dataset, lookup_train, lookup_test, self.lookup_table = self.setup_datasets(X, self.y, self.lookup_table, train_size)
 
-        if auto_label is False:
-            labeler = OurLabeler(labels=self.labels)
-        query_strategy, strategy = self.get_active_learning_strategy(active_learning_strategy, train_dataset)
-        model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')
+        labeler = AutoLabeler(train_dataset_labeled) if auto_label else WebLabeler(labels=self.labels, lookup_table=lookup_train)
 
-        # Train on the labeled data and get initial accuracy
-        model.fit(*(train_dataset.format_sklearn()))
-        self.test_and_get_results(model, test_dataset, results, metrics)
+        X_test, y_test = test_dataset.format_sklearn()
+        options = {'intermediate_testing': True, 'intermediate_results': [], 'X_test': X_test}
+        model, opt = train_active_learning(num_queries=num_queries, training_dataset=train_dataset, labeler=labeler, active_learning_strategy=active_learning_strategy, options=options)
 
-        elapsed_time = 0  # time duration spent taken querying and retraining
+        elapsed_time = opt['active_learning_training_time']
+        strategy = opt['strategy']
+        predictions = opt['intermediate_results']  # first prediction is before active learning, num_queries intermediate preductions (last one is final prediction)
 
-        # query the oracle / active learning part
-        for query_number in range(1, num_queries + 1):
-            start_time = time.time()
-            query_id = query_strategy.make_query()
-            label = train_dataset_labeled.data[query_id][1] if auto_label else labeler.label(lookup_train[query_id])
-
-            # update the dataset with newly-labeled example then re-train
-            train_dataset.update(query_id, label)
-            model.fit(*(train_dataset.format_sklearn()))
-            elapsed_time += time.time() - start_time
-
-            # Test for intermediate and final metrics
-            X_test, y_test, y_pred = self.test_and_get_results(model, test_dataset, results, metrics)
-            if verbose:
-                print("Accuracy: ", model.score(X_test, y_test))
+        for y_pred in predictions:
+            self.get_results(y_test, y_pred, results, metrics)
 
         if self_train:
             instances_to_label_per_loop = 20
@@ -134,7 +120,7 @@ class Learn:
             self.self_train(train_dataset, model, instances_to_label_per_loop, test_size)
             X_test, y_test, y_pred = self.test_and_get_results(model, test_dataset, results, metrics)
 
-        conf_matrix = confusion_matrix(y_test, y_pred, labels=self.label_ids).tolist()
+        conf_matrix = confusion_matrix(y_test, predictions[-1], labels=self.label_ids).tolist()
         self.send_results_to_display(num_queries, strategy, elapsed_time, results, conf_matrix, metrics)
         if verbose:
             print("Fin")
@@ -148,14 +134,11 @@ class Learn:
             results[label_id]['label'] = label
         return results
 
-
     def setup_datasets(self, X, y, lookup_table, train_size):
         X_train, X_test, y_train, y_test, lookup_train, lookup_test \
             = train_test_split(X, y, lookup_table, train_size=0.7, random_state=None, stratify=y)
         X_train_labeled, X_train_unlabeled, y_train_labeled, y_train_unlabeled, lookup_train_labeled, lookup_train_unlabeled \
             = train_test_split(X_train, y_train, lookup_train, train_size=train_size, random_state=None, stratify=y_train)
-
-
         lookup_table = lookup_train_labeled + lookup_train_unlabeled + lookup_test
         lookup_train = lookup_train_labeled + lookup_train_unlabeled
         X_train = numpy.array(vstack([X_train_labeled, X_train_unlabeled]).toarray())
@@ -165,55 +148,6 @@ class Learn:
         train_dataset_labeled = Dataset(X_train, y_train)
         test_dataset = Dataset(X_test, y_test)
         return train_dataset, train_dataset_labeled, test_dataset, lookup_train, lookup_test, lookup_table
-
-    def get_active_learning_strategy(self, active_learning_strategy, dataset):
-        '''
-        Active learning strategies are:
-
-        1. Active learning by learning
-        2. Hint SVM
-        3. Query by committee
-        4. QUIRE
-        5. Random sampling
-        6. Uncertainty sampling
-        7. Uncertainty sampling (smallest margin)
-        8. Variance reduction
-        '''
-
-        # choose an active learning strategy
-        if active_learning_strategy == 1:
-            strategy = 'Active learning by learning'
-            query_strategy = ActiveLearningByLearning(
-                dataset,
-                query_strategies=[
-                    UncertaintySampling(dataset, model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')),
-                    UncertaintySampling(dataset, model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-3, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')),
-                ],
-                model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced'),
-                T=1000)
-        elif active_learning_strategy == 2:
-            strategy = 'Hint SVM'
-            query_strategy = HintSVM(dataset, Cl=0.01, p=0.8)
-        elif active_learning_strategy == 3:
-            strategy = 'Query by committee'
-            query_strategy = QueryByCommittee(dataset, models=[LogisticRegression(C=1.0), LogisticRegression(C=0.1)])
-        elif active_learning_strategy == 4:
-            strategy = 'QUIRE'
-            query_strategy = QUIRE(dataset)
-        elif active_learning_strategy == 5:
-            strategy = 'Random sampling'
-            query_strategy = RandomSampling(dataset)
-        elif active_learning_strategy == 6:
-            strategy = 'Uncertainty sampling least confidence'
-            query_strategy = UncertaintySampling(dataset, model=SVM(kernel='linear', decision_function_shape='ovr'))
-        elif active_learning_strategy == 7:
-            strategy = 'Uncertainty sampling smallest margin'
-            query_strategy = UncertaintySampling(dataset, method='sm', model=SVM(kernel='linear', decision_function_shape='ovr'))
-        else:
-            strategy = 'Variance reduction'
-            query_strategy = VarianceReduction(dataset)
-
-        return query_strategy, strategy
 
     def get_data(self, dataset):
         entries = dataset.get_entries()
