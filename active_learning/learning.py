@@ -68,7 +68,7 @@ class Learn:
         text_clf = Pipeline([
           ('tfidf', TfidfVectorizer(stop_words='english')),
           ('chi2', SelectKBest(chi2, k=1000)),
-          ('clf', SGDClassifier(loss='hinge', penalty='l2', alpha=1e-4, n_iter=5, random_state=None)),
+          ('clf', SGD_Model(alpha=1e-4, n_iter=5)),
         ])
         scores = cross_val_score(text_clf, X, y, cv=10)
         print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))

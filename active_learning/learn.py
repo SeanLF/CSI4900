@@ -4,7 +4,6 @@ from scipy.sparse import vstack
 
 from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support, accuracy_score
 
 from libact.base.dataset import Dataset
@@ -28,9 +27,9 @@ def train_active_learning(**kwargs):
     # Setup active-learning strategy
     query_strategy, options['strategy'] = get_active_learning_strategy(active_learning_strategy, training_dataset)
     # Create model
-    model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')
+    model = SGD_Model(alpha=1e-2, n_iter=1000)
     # train on labeled instances
-    model.fit(*(training_dataset.format_sklearn()))
+    model.train(training_dataset)
     # test if we want intermediate training results
     if options['intermediate_testing'] is True:
         options['intermediate_results'].append(model.predict(options['X_test']))
@@ -44,10 +43,11 @@ def train_active_learning(**kwargs):
         label = labeler.label(query_id)
         # update dataset with label then retrain the model
         training_dataset.update(query_id, label)
-        model.fit(*(training_dataset.format_sklearn()))
+        model.train(training_dataset)
         options['active_learning_training_time'] += time.time() - start_time
         if options['intermediate_testing'] is True:
             options['intermediate_results'].append(model.predict(options['X_test']))
+            print("query_num: ", query_num)
     return model, options
 
 
@@ -121,17 +121,17 @@ def get_active_learning_strategy(active_learning_strategy, dataset):
         query_strategy = ActiveLearningByLearning(
             dataset,
             query_strategies=[
-                UncertaintySampling(dataset, model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')),
-                UncertaintySampling(dataset, model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-3, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')),
+                UncertaintySampling(dataset, model=SGD_Model(alpha=1e-2, n_iter=1000)),
+                UncertaintySampling(dataset, model=SGD_Model(alpha=1e-3, n_iter=1000)),
             ],
-            model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced'),
+            model=SGD_Model(alpha=1e-2, n_iter=1000),
             T=1000)
     elif active_learning_strategy == 2:
         strategy = 'Hint SVM'
         query_strategy = HintSVM(dataset, Cl=0.01, p=0.8)
     elif active_learning_strategy == 3:
         strategy = 'Query by committee'
-        query_strategy = QueryByCommittee(dataset, models=[LogisticRegression(C=1.0), LogisticRegression(C=0.1)])
+        query_strategy = QueryByCommittee(dataset, models=[SGD_Model(alpha=1e-2, n_iter=1000), SGD_Model(alpha=1e-3, n_iter=1000)])
     elif active_learning_strategy == 4:
         strategy = 'QUIRE'
         query_strategy = QUIRE(dataset)
