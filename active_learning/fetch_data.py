@@ -167,9 +167,9 @@ def load_four_university(yes_label_id, no_label_id, root_dir='webkb'):
         return
 
     articles = []
+    random_title = 0
 
     for folder, subs, files in os.walk(root_dir):
-        random_title = 0
         for filename in files:
             if not('www' in filename) or ('misc' in folder) or ('other' in folder):
                 continue
