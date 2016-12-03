@@ -1,3 +1,6 @@
+# ignore anything in our presentation or report folders
+/to_ignore
+
 # Ignore extracted webkb
 webkb/
 webkb-data.gtar.gz
