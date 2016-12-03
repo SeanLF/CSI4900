@@ -51,7 +51,7 @@ def train_active_learning(**kwargs):
     return model, options
 
 
-def cross_validate_active_learning(num_folds, X, y, labeled_instances, num_queries):
+def cross_validate_active_learning(num_folds, X, y, labeled_instances, num_queries, **kwargs):
     active_learning_strategy = kwargs.pop('active_learning_strategy', 1)
     results = []
     # make K folds
