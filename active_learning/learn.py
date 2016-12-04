@@ -26,7 +26,7 @@ def train_active_learning(**kwargs):
     active_learning_strategy = kwargs.pop('active_learning_strategy', 1)
     options = kwargs.pop('options', {'intermediate_testing': False})
     # Setup active-learning strategy
-    query_strategy, options['strategy'] = get_active_learning_strategy(active_learning_strategy, training_dataset)
+    query_strategy, options['strategy'] = get_active_learning_strategy(active_learning_strategy, training_dataset, max_queries=num_queries)
     # Create model
     model = SGDClassifier(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')
     # train on labeled instances
@@ -103,7 +103,7 @@ def learn(dataset_id, **kwargs):
     return cross_validate_active_learning(num_folds, X, y, labeled_instances, num_queries, active_learning_strategy=active_learning_strategy)
 
 
-def get_active_learning_strategy(active_learning_strategy, dataset):
+def get_active_learning_strategy(active_learning_strategy, dataset, **kwargs):
     '''
     Active learning strategies are:
 
@@ -118,6 +118,10 @@ def get_active_learning_strategy(active_learning_strategy, dataset):
     9. Variance reduction
     '''
 
+    max_queries = kwargs.pop('max_queries', 100)
+    if max_queries == 0:
+        max_queries = 100
+
     # choose an active learning strategy
     if active_learning_strategy == 1:
         strategy = 'Active learning by learning'
@@ -128,7 +132,7 @@ def get_active_learning_strategy(active_learning_strategy, dataset):
                 UncertaintySampling(dataset, model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-3, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced')),
             ],
             model=SGD_Model(loss='hinge', penalty='l2', alpha=1e-2, n_iter=1000, random_state=None, learning_rate='optimal', class_weight='balanced'),
-            T=1000)
+            T=max_queries)
     elif active_learning_strategy == 2:
         strategy = 'Active learning by learning (with QBC)'
         query_strategy = ActiveLearningByLearning(
