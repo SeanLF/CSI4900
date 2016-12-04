@@ -4,6 +4,7 @@ import pusherclient
 from active_learning.utils import format_pusher_channel_name, get_pusher_client
 from os import environ
 from time import sleep
+from threading import Semaphore
 
 
 class WebLabeler(Labeler):
@@ -30,6 +31,7 @@ class WebLabeler(Labeler):
         self.pusher_client = get_pusher_client()
         self.channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
         self.lbl = None
+        self.semaphore = Semaphore(0)
 
         global pusher
         # listen for response from client, then disconnect
@@ -47,8 +49,7 @@ class WebLabeler(Labeler):
         self.pusher_client.trigger(self.channel_name, 'request_label', pusher_data)
 
         # wait for the oracle to provide a label
-        while (self.labels is not None) and (self.lbl not in self.labels.keys()):
-            sleep(1)
+        self.semaphore.acquire()
 
         label = self.labels[self.lbl]
         self.lbl = None
@@ -63,6 +64,7 @@ class WebLabeler(Labeler):
 
     def callback(self, data):
         import json
+        self.semaphore.release()
         self.lbl = json.loads(data)['label']
 
 
