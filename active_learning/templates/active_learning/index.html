@@ -43,7 +43,8 @@
 
 <script type="text/javascript">
   function learn(dataset_id, auto_label){
-    fetch(`/learn?dataset=${dataset_id}&auto_label=${auto_label}`)
+    debugger
+    fetch(`/learn?dataset=${dataset_id}&auto_label=${auto_label}&private_channel_name=${parent.privateChannel.name}`)
   }
 
   document.getElementById('start_learning').addEventListener('click', function(e){

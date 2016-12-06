@@ -41,6 +41,7 @@ class Learn:
             c. adding the article class label (id) to an array Y
         '''
 
+        self.private_channel_name = kwargs.pop('private_channel_name')
         self.articles = Article.objects.filter(dataset_id=kwargs.pop('dataset_id', 1))
         self.label_ids = list(self.articles.values_list('class_label_id', flat=True).distinct())
         self.label_ids.sort()
@@ -101,7 +102,7 @@ class Learn:
 
         train_dataset, train_dataset_labeled, test_dataset, lookup_train, lookup_test, self.lookup_table = self.setup_datasets(X, self.y, self.lookup_table, train_size)
 
-        labeler = AutoLabeler(train_dataset_labeled) if auto_label else WebLabeler(labels=self.labels, lookup_table=lookup_train)
+        labeler = AutoLabeler(train_dataset_labeled) if auto_label else WebLabeler(labels=self.labels, lookup_table=lookup_train, private_channel_name=self.private_channel_name)
 
         X_test, y_test = test_dataset.format_sklearn()
         options = {'intermediate_testing': True, 'intermediate_results': [], 'X_test': X_test}
@@ -186,8 +187,7 @@ class Learn:
 
     def send_results_to_display(self, num_queries, strategy, time, results, confusion_matrix, metrics):
         pusher_client = get_pusher_client()
-        channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
         pusher_data = {
             'strategy': strategy, 'time': time, 'results': results, 'confusion_matrix': confusion_matrix, 'metrics': metrics
         }
-        pusher_client.trigger(channel_name, 'show_accuracy_over_queries', pusher_data)
+        pusher_client.trigger(self.private_channel_name, 'show_accuracy_over_queries', pusher_data)

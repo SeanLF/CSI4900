@@ -8,6 +8,8 @@ from requests import head
 import newspaper
 import after_response
 from os import environ
+from random import choice
+from string import ascii_uppercase
 from .models import Article, Label, SearchQuery, DataSet
 from .fetch_data import clean_string, download_articles, get_links, load_four_university
 from .learning import Learn
@@ -44,8 +46,9 @@ def iframe(request):
     '''
 
     presence_channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
+    private_channel_name = format_pusher_channel_name(environ['PRIVATE_CHANNEL_NAME'] + ''.join(choice(ascii_uppercase) for i in range(12)))
     PUSHER_KEY = environ['PUSHER_KEY']
-    return render(request, 'active_learning/iframe.html', {'presence_channel_name': presence_channel_name, 'PUSHER_KEY': PUSHER_KEY})
+    return render(request, 'active_learning/iframe.html', {'presence_channel_name': presence_channel_name, 'private_channel_name': private_channel_name, 'PUSHER_KEY': PUSHER_KEY})
 
 
 def learn(request):
@@ -56,17 +59,18 @@ def learn(request):
 
     dataset_id = request.GET['dataset']
     auto_label = request.GET['auto_label']
+    private_channel_name = request.GET['private_channel_name']
 
-    do_learn.after_response(dataset_id, auto_label == u'true')
+    do_learn.after_response(dataset_id, auto_label == u'true', private_channel_name)
     return HttpResponse(status=200)
 
 
 @after_response.enable
-def do_learn(dataset_id, auto_label):
+def do_learn(dataset_id, auto_label, private_channel_name):
     '''
     Begins the active learning process (asynchronously)
     '''
-    Learn(dataset_id=dataset_id).learn(auto_label=auto_label, self_train=False, active_learning_strategy=1, num_queries=20, train_size=0.01)
+    Learn(dataset_id=dataset_id, private_channel_name=private_channel_name).learn(auto_label=auto_label, self_train=False, active_learning_strategy=1, num_queries=20, train_size=0.01)
 
 
 def get_articles(request):

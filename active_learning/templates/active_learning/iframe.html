@@ -67,22 +67,16 @@
     encrypted: true
   });
 
-  window.channel = pusher.subscribe('{{presence_channel_name}}');
-  channel.bind('write-to-console-window', function(data) {
-    printToConsoleWindow(data.message)
-  });
+  window.globalChannel = pusher.subscribe('{{presence_channel_name}}')
+  window.privateChannel = pusher.subscribe('{{private_channel_name}}')
 
-  channel.bind('request_label', function(data){
+  privateChannel.bind('request_label', function(data){
     printToConsoleWindow("Please label this article\n" + JSON.stringify(data))
     window.idOfArticleToLabel = data.id
     document.getElementsByTagName('iframe')[0].src = data.url
   })
 
-  channel.bind('model_scored', function(data){
-    printToConsoleWindow(JSON.stringify(data))
-  })
-
-  channel.bind('show_accuracy_over_queries', function(data){
+  privateChannel.bind('show_accuracy_over_queries', function(data){
     strategy = data.strategy
     time = data.time.toFixed(2)
     charts = {}

@@ -29,7 +29,7 @@ class WebLabeler(Labeler):
         self.labels = kwargs.pop('labels', None)
         self.lookup_table = kwargs.pop('lookup_table', [])
         self.pusher_client = get_pusher_client()
-        self.channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
+        self.private_channel_name = kwargs.pop('private_channel_name', None)
         self.lbl = None
         self.semaphore = Semaphore(0)
 
@@ -46,7 +46,7 @@ class WebLabeler(Labeler):
 
         article_id = self.lookup_table[query_id]
         pusher_data = {'id': article_id, 'url': environ['HOST'] + reverse('active_learning:detail', args=[article_id])}
-        self.pusher_client.trigger(self.channel_name, 'request_label', pusher_data)
+        self.pusher_client.trigger(self.private_channel_name, 'request_label', pusher_data)
 
         # wait for the oracle to provide a label
         self.semaphore.acquire()
@@ -59,7 +59,7 @@ class WebLabeler(Labeler):
         '''
         We can't subscribe until we've connected, so we use a callback handler to subscribe when able
         '''
-        channel = pusher.subscribe(self.channel_name)
+        channel = pusher.subscribe(self.private_channel_name)
         channel.bind('client-label', self.callback)
 
     def callback(self, data):

@@ -32,8 +32,8 @@
 
 <script type="text/javascript">
   function label(label){
-    if (parent.channel != undefined && parent.idOfArticleToLabel != null) {
-      sent = parent.channel.trigger('client-label', {label: label})
+    if (parent.privateChannel != undefined && parent.idOfArticleToLabel != null) {
+      sent = parent.privateChannel.trigger('client-label', {label: label})
       parent.loadSpinnerScreen()
       if (sent){
         parent.toLabel = null
