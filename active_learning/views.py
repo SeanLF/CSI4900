@@ -46,7 +46,7 @@ def iframe(request):
     '''
 
     presence_channel_name = format_pusher_channel_name(environ['PRESENCE_CHANNEL_NAME'])
-    private_channel_name = format_pusher_channel_name(environ['PRIVATE_CHANNEL_NAME'] + ''.join(choice(ascii_uppercase) for i in range(12)))
+    private_channel_name = format_pusher_channel_name(environ['PRIVATE_CHANNEL_NAME'] + '-' + ''.join(choice(ascii_uppercase) for i in range(12)))
     PUSHER_KEY = environ['PUSHER_KEY']
     return render(request, 'active_learning/iframe.html', {'presence_channel_name': presence_channel_name, 'private_channel_name': private_channel_name, 'PUSHER_KEY': PUSHER_KEY})
 
