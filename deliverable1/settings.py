@@ -25,7 +25,7 @@ SECRET_KEY = '$*9#=8kw%*&#4+=#rcobsaun=14!fbmal=$s^7uwdgwte0e1jz'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
