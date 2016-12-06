@@ -43,7 +43,6 @@
 
 <script type="text/javascript">
   function learn(dataset_id, auto_label){
-    debugger
     fetch(`/learn?dataset=${dataset_id}&auto_label=${auto_label}&private_channel_name=${parent.privateChannel.name}`)
   }
 
