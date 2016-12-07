@@ -42,12 +42,14 @@
 </div>
 
 <script type="text/javascript">
-  function learn(dataset_id, auto_label){
-    fetch(`/learn?dataset=${dataset_id}&auto_label=${auto_label}&private_channel_name=${parent.privateChannel.name}`)
+  function learn(dataset_id, auto_label, num_queries){
+    fetch(`/learn?dataset=${dataset_id}&auto_label=${auto_label}&private_channel_name=${parent.privateChannel.name}&num_queries=${num_queries}`)
   }
 
   document.getElementById('start_learning').addEventListener('click', function(e){
     auto_label = e.shiftKey
+    prompt_num_queries = e.metaKey
+    debugger
     datasets = [
       {%  for dataset in datasets %}
         {
@@ -57,10 +59,12 @@
     ]
     text = 'Enter the ID of the dataset to use.\n\n' + datasets.map(function(dataset){return `\t${dataset.dataset_id}\t${dataset.name}\n`}).join('')
     dataset_id = prompt(text, datasets[0]['dataset_id'])
+    num_queries = prompt_num_queries ? prompt('How many instances do you want to label?', 20): 20
+    num_queries = num_queries == null ? 20 : num_queries
     if (dataset_id != null){
         this.disabled=true
         parent.loadSpinnerScreen()
-        learn(dataset_id, auto_label)
+        learn(dataset_id, auto_label, num_queries)
     }
   })
 </script>
